@@ -1,0 +1,246 @@
+const CURRENT_USER = { name: '李同学', email: 'li@example.com' };
+
+const PROJECT_STATUS = {
+  '未开始': 'status-gray',
+  '进行中': 'status-blue',
+  '暂停': 'status-orange',
+  '已完成': 'status-green',
+  '已归档': 'status-dark',
+};
+
+const EXPERIMENT_STATUS = {
+  '草稿': 'status-gray',
+  '进行中': 'status-blue',
+  '待处理': 'status-orange',
+  '已完成': 'status-green',
+  '已归档': 'status-dark',
+};
+
+const PROJECTS = [
+  {
+    id: 'p1',
+    name: 'GFP 融合蛋白表达',
+    code: 'PRJ-2026-001',
+    status: '进行中',
+    leader: '李同学',
+    members: 5,
+    experiments: 12,
+    updated: '2026-07-07',
+    description: '构建并表达 GFP 融合蛋白，验证表达条件与纯化方案。',
+    startDate: '2026-06-01',
+    endDate: '2026-09-30',
+    tags: ['分子生物学', '蛋白表达'],
+  },
+  {
+    id: 'p2',
+    name: '细胞转染条件优化',
+    code: 'PRJ-2026-002',
+    status: '进行中',
+    leader: '王同学',
+    members: 4,
+    experiments: 8,
+    updated: '2026-07-06',
+    description: '优化 HEK293 细胞转染效率与存活率。',
+    startDate: '2026-05-15',
+    endDate: '2026-08-15',
+    tags: ['细胞实验'],
+  },
+  {
+    id: 'p3',
+    name: 'qPCR 引物验证',
+    code: 'PRJ-2026-003',
+    status: '暂停',
+    leader: '张老师',
+    members: 3,
+    experiments: 5,
+    updated: '2026-07-03',
+    description: '验证 qPCR 引物特异性与扩增效率。',
+    startDate: '2026-06-10',
+    endDate: '2026-07-30',
+    tags: ['qPCR'],
+  },
+  {
+    id: 'p4',
+    name: 'Western blot 条件筛选',
+    code: 'PRJ-2026-004',
+    status: '未开始',
+    leader: '李同学',
+    members: 2,
+    experiments: 0,
+    updated: '2026-06-28',
+    description: '筛选一抗浓度与封闭条件。',
+    startDate: '2026-07-10',
+    endDate: '2026-08-20',
+    tags: ['蛋白实验'],
+  },
+];
+
+const EXPERIMENTS = [
+  {
+    id: 'e1',
+    projectId: 'p1',
+    name: 'PCR 扩增 GFP 片段',
+    code: 'EXP-2026-001',
+    type: 'PCR',
+    status: '已完成',
+    leader: '李同学',
+    date: '2026-07-07',
+    template: 'PCR 模板',
+    attachments: 2,
+    updated: '2026-07-07 16:00',
+    summary: '成功扩增出约 750 bp 条带',
+    comments: 1,
+  },
+  {
+    id: 'e2',
+    projectId: 'p1',
+    name: '琼脂糖凝胶电泳验证',
+    code: 'EXP-2026-002',
+    type: '电泳',
+    status: '已完成',
+    leader: '李同学',
+    date: '2026-07-06',
+    template: '空白记录',
+    attachments: 1,
+    updated: '2026-07-06 14:30',
+    summary: '条带清晰，大小符合预期',
+    comments: 0,
+  },
+  {
+    id: 'e3',
+    projectId: 'p1',
+    name: '质粒小提',
+    code: 'EXP-2026-003',
+    type: '质粒提取',
+    status: '进行中',
+    leader: '王同学',
+    date: '2026-07-07',
+    template: '质粒提取模板',
+    attachments: 0,
+    updated: '2026-07-07 10:00',
+    summary: '正在进行质粒提取',
+    comments: 0,
+  },
+  {
+    id: 'e4',
+    projectId: 'p1',
+    name: 'Western blot 验证',
+    code: 'EXP-2026-004',
+    type: 'Western blot',
+    status: '待处理',
+    leader: '李同学',
+    date: '2026-07-05',
+    template: 'WB 模板',
+    attachments: 3,
+    updated: '2026-07-05 18:00',
+    summary: '等待审核结果',
+    comments: 2,
+  },
+  {
+    id: 'e5',
+    projectId: 'p2',
+    name: 'Lipofectamine 转染测试',
+    code: 'EXP-2026-005',
+    type: '细胞实验',
+    status: '已完成',
+    leader: '王同学',
+    date: '2026-07-04',
+    template: '细胞转染模板',
+    attachments: 2,
+    updated: '2026-07-04 17:00',
+    summary: '转染效率约 65%',
+    comments: 0,
+  },
+];
+
+const TEMPLATES = [
+  {
+    id: 't1',
+    name: 'PCR 实验模板',
+    type: 'PCR',
+    category: '分子生物学',
+    creator: '李同学',
+    uses: 25,
+    updated: '2026-07-07',
+    description: '标准 PCR 扩增实验记录模板，含反应体系与程序。',
+  },
+  {
+    id: 't2',
+    name: 'qPCR 定量模板',
+    type: 'qPCR',
+    category: '分子生物学',
+    creator: '张老师',
+    uses: 18,
+    updated: '2026-07-05',
+    description: '实时荧光定量 PCR 实验记录。',
+  },
+  {
+    id: 't3',
+    name: 'Western blot 模板',
+    type: 'Western blot',
+    category: '蛋白实验',
+    creator: '李同学',
+    uses: 12,
+    updated: '2026-06-28',
+    description: '蛋白印迹实验完整记录模板。',
+  },
+  {
+    id: 't4',
+    name: '细胞转染模板',
+    type: '细胞实验',
+    category: '细胞实验',
+    creator: '王同学',
+    uses: 9,
+    updated: '2026-06-20',
+    description: '细胞转染操作与结果记录。',
+  },
+];
+
+const PROJECT_ATTACHMENTS = [
+  { name: '实验方案.pdf', type: 'PDF', size: '2.3 MB', uploader: '李同学', date: '2026-07-01', note: '项目立项方案' },
+  { name: '参考文献.zip', type: 'ZIP', size: '5.1 MB', uploader: '李同学', date: '2026-06-28', note: '相关文献' },
+  { name: '项目设计图.png', type: '图片', size: '890 KB', uploader: '王同学', date: '2026-06-25', note: '实验流程图' },
+  { name: '预算表.xlsx', type: 'Excel', size: '120 KB', uploader: '李同学', date: '2026-06-20', note: '项目预算' },
+];
+
+const ACTIVITIES = [
+  { user: '李同学', action: '创建了实验记录', target: 'PCR 扩增 GFP 片段', time: '2026-07-07 16:00' },
+  { user: '王同学', action: '上传了项目附件', target: '实验方案.pdf', time: '2026-07-07 14:30' },
+  { user: '张老师', action: '评论了实验记录', target: 'Western blot 验证', time: '2026-07-07 11:00' },
+  { user: '李同学', action: '将项目状态更新为', target: '进行中', time: '2026-07-06 09:00' },
+];
+
+const TODOS = [
+  { type: '未完成记录', title: '质粒小提 尚未完成', project: 'GFP 融合蛋白表达', time: '2026-07-07', action: '继续编辑', target: 'experiment-edit', targetId: 'e3' },
+  { type: '等待审核', title: 'Western blot 验证 等待审核', project: 'GFP 融合蛋白表达', time: '2026-07-05', action: '查看详情', target: 'experiment-detail', targetId: 'e4' },
+  { type: '未处理评论', title: 'PCR 扩增 GFP 片段 有 1 条评论', project: 'GFP 融合蛋白表达', time: '2026-07-07', action: '处理评论', target: 'experiment-detail', targetId: 'e1' },
+];
+
+const TEAM_MEMBERS = [
+  { name: '李同学', email: 'li@example.com', role: '项目负责人', permissions: '全部权限', joined: '2026-06-01', active: '2026-07-07' },
+  { name: '王同学', email: 'wang@example.com', role: '项目成员', permissions: '可查看、可编辑自己的记录', joined: '2026-06-05', active: '2026-07-07' },
+  { name: '张老师', email: 'zhang@example.com', role: '审核者', permissions: '可查看、可审核', joined: '2026-06-10', active: '2026-07-06' },
+  { name: '赵同学', email: 'zhao@example.com', role: '项目成员', permissions: '可查看、可编辑自己的记录', joined: '2026-06-15', active: '2026-07-05' },
+  { name: '陈同学', email: 'chen@example.com', role: '观察者', permissions: '仅查看', joined: '2026-06-20', active: '2026-07-03' },
+];
+
+const SEARCH_RESULTS = {
+  projects: PROJECTS.slice(0, 2),
+  experiments: EXPERIMENTS.filter(e => e.name.includes('GFP') || e.projectId === 'p1').slice(0, 3),
+  templates: TEMPLATES.slice(0, 2),
+  members: TEAM_MEMBERS.slice(0, 2),
+  attachments: [
+    { name: '实验方案.pdf', type: 'PDF', location: '项目附件：GFP 融合蛋白表达项目', uploader: '李同学', date: '2026-07-01' },
+    { name: '电泳图.jpg', type: '图片', location: '实验附件：PCR 扩增 GFP 片段', uploader: '李同学', date: '2026-07-07' },
+  ],
+};
+
+const NAV_ITEMS = [
+  { id: 'dashboard', label: '工作台', icon: '🏠' },
+  { id: 'projects', label: '项目管理', icon: '📁' },
+  { id: 'current-project', label: '当前项目', icon: '🔬' },
+  { id: 'templates', label: '模板中心', icon: '📋' },
+  { id: 'search', label: '搜索中心', icon: '🔍' },
+  { id: 'team', label: '团队管理', icon: '👥' },
+  { id: 'ai', label: 'AI助手', icon: '🤖' },
+];
