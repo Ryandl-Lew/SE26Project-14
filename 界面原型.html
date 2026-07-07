@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生物实验助手 - 界面原型</title>
+  <style>
+    /* ===== Reset & Variables ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --error: #ff4d4f;
+      --bg: #f5f5f5;
+      --bg-card: #fff;
+      --text: #222;
+      --text-secondary: #666;
+      --border: #e8e8e8;
+      --sidebar-w: 220px;
+      --header-h: 56px;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ===== Layout ===== */
+    .app { display: flex; min-height: 100vh; }
+
+    /* ===== Header ===== */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-h);
+      background: #001529;
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+    .header-logo {
+      font-size: 18px; font-weight: 700; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .header-logo .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .header-actions { display: flex; align-items: center; gap: 16px; }
+    .header-btn {
+      background: rgba(255,255,255,0.15);
+      color: #fff; border: none; padding: 6px 14px; border-radius: var(--radius);
+      cursor: pointer; font-size: 14px; transition: background .2s;
+    }
+    .header-btn:hover { background: rgba(255,255,255,0.25); }
+    .header-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .notification-badge {
+      position: relative; cursor: pointer;
+    }
+    .notification-badge::after {
+      content: ''; position: absolute; top: -2px; right: -2px;
+      width: 8px; height: 8px; background: var(--error); border-radius: 50%;
+      border: 2px solid #001529;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      position: fixed; top: var(--header-h); left: 0; bottom: 0;
+      width: var(--sidebar-w); background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 16px 0; overflow-y: auto; z-index: 50;
+    }
+    .sidebar-title { padding: 0 20px 16px; font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+    .sidebar-nav { list-style: none; }
+    .sidebar-nav li { }
+    .sidebar-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: var(--text); text-decoration: none;
+      font-size: 14px; transition: all .2s; border-left: 3px solid transparent;
+    }
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      background: #e6f4ff; color: var(--primary); border-left-color: var(--primary);
+    }
+    .sidebar-nav a .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+
+    /* ===== Main Content ===== */
+    .main {
+      flex: 1; margin-left: var(--sidebar-w); margin-top: var(--header-h);
+      padding: 24px; min-height: calc(100vh - var(--header-h));
+    }
+
+    /* ===== Page Header ===== */
+    .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 22px; font-weight: 600; }
+    .page-header .breadcrumb { font-size: 13px; color: var(--text-secondary); }
+    .page-header .breadcrumb span { color: var(--text); }
+
+    /* ===== Cards Grid ===== */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--bg-card); border-radius: var(--radius);
+      padding: 20px; border: 1px solid var(--border);
+      transition: box-shadow .2s; cursor: pointer;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+    .card-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+    .card-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius); font-size: 14px;
+      cursor: pointer; border: 1px solid transparent; transition: all .2s;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-default { background: #fff; color: var(--text); border-color: var(--border); }
+    .btn-default:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-danger { background: #fff; color: var(--error); border-color: var(--error); }
+    .btn-danger:hover { background: #fff2f0; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+
+    /* ===== Search ===== */
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px; padding: 8px 14px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 14px; outline: none; font-family: inherit;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
+
+    /* ===== Data Record Form ===== */
+    .record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .record-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .record-item label {
+      display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .record-item .required::after { content: ' *'; color: var(--error); }
+    .record-item input, .record-item textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .record-item input:focus, .record-item textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1);
+    }
+    .record-item textarea { resize: vertical; min-height: 60px; }
+    .image-upload-area {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 24px; text-align: center; color: var(--text-secondary);
+      cursor: pointer; transition: all .2s; background: #fafafa;
+    }
+    .image-upload-area:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ===== Timeline ===== */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 6px; top: 4px; bottom: 4px;
+      width: 2px; background: var(--border);
+    }
+    .timeline-item { position: relative; margin-bottom: 20px; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -19px; top: 6px;
+      width: 10px; height: 10px; border-radius: 50%; background: var(--primary);
+      border: 2px solid #fff; box-shadow: 0 0 0 2px var(--primary);
+    }
+    .timeline-content {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
+    }
+    .timeline-time { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+
+    /* ===== Chart Area ===== */
+    .chart-placeholder {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px; text-align: center;
+      min-height: 300px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); font-size: 15px;
+    }
+    .analysis-controls {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+      align-items: flex-end;
+    }
+    .analysis-controls .control-group { display: flex; flex-direction: column; gap: 4px; }
+    .analysis-controls label { font-size: 12px; color: var(--text-secondary); }
+    .analysis-controls select, .analysis-controls input {
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 14px; font-family: inherit; outline: none; min-width: 160px;
+    }
+    .result-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+    .result-table th, .result-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; }
+    .result-table th { background: #fafafa; font-weight: 600; }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-secondary);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { margin-bottom: 16px; font-size: 15px; }
+
+    /* ===== Tag / Badge ===== */
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 12px; margin-right: 4px;
+    }
+    .tag-success { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
+    .tag-warning { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+    .tag-default { background: #f5f5f5; color: #666; border: 1px solid #d9d9d9; }
+
+    /* ===== Tabs ===== */
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab {
+      padding: 10px 20px; cursor: pointer; font-size: 14px;
+      color: var(--text-secondary); border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+    .tab:hover { color: var(--primary); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+
+    /* ===== Action Bar ===== */
+    .action-bar {
+      display: flex; gap: 10px; padding: 16px 0;
+      border-top: 1px solid var(--border); margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== Toggle Switch ===== */
+    .toggle {
+      position: relative; display: inline-block; width: 44px; height: 22px;
+    }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+      cursor: pointer; transition: .3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; left: 2px; bottom: 2px;
+      width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: .3s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--primary); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 991px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .card-grid { grid-template-columns: 1fr; }
+      .record-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767px) {
+      .header { padding: 0 12px; }
+      .main { padding: 12px; }
+      .page-header h1 { font-size: 18px; }
+      .analysis-controls { flex-direction: column; }
+      .analysis-controls select, .analysis-controls input { width: 100%; }
+    }
+
+    /* ===== Modal Overlay ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: var(--radius); width: 90%; max-width: 520px;
+      padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+    .modal h3 { margin-bottom: 16px; font-size: 17px; }
+    .modal .form-group { margin-bottom: 14px; }
+    .modal .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--text-secondary); }
+    .modal .form-group input, .modal .form-group textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- ==================== HEADER ==================== -->
+    <header class="header">
+      <div class="header-logo">
+        <div class="logo-icon">🧬</div>
+        生物实验助手
+      </div>
+      <div class="header-actions">
+        <span class="notification-badge" title="新提醒">🔔</span>
+        <div class="header-avatar" title="用户">张</div>
+      </div>
+    </header>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar">
+      <div class="sidebar-title">导航菜单</div>
+      <ul class="sidebar-nav">
+        <li><a href="#" class="active" onclick="showPage('projects')"><span class="nav-icon">📋</span> 我的项目</a></li>
+        <li><a href="#" onclick="showPage('project-detail')"><span class="nav-icon">📁</span> 项目详情</a></li>
+        <li><a href="#" onclick="showPage('data-record')"><span class="nav-icon">📝</span> 数据记录</a></li>
+        <li><a href="#" onclick="showPage('data-history')"><span class="nav-icon">📊</span> 数据历史</a></li>
+        <li><a href="#" onclick="showPage('reminders')"><span class="nav-icon">⏰</span> 提醒设置</a></li>
+        <li><a href="#" onclick="showPage('analysis')"><span class="nav-icon">🔬</span> 数据分析</a></li>
+        <li><a href="#" onclick="showPage('public-data')"><span class="nav-icon">🌐</span> 公开数据</a></li>
+      </ul>
+    </aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main" id="main-content">
+      <!-- Dynamic content rendered by JS -->
+    </main>
+  </div>
+
+  <!-- ==================== MODAL: New Project ==================== -->
+  <div class="modal-overlay" id="modal-new-project">
+    <div class="modal">
+      <h3>新建实验项目</h3>
+      <div class="form-group"><label>项目名称 <span style="color:#ff4d4f">*</span></label><input type="text" placeholder="请输入项目名称"></div>
+      <div class="form-group"><label>实验类型</label><input type="text" placeholder="如：细胞培养、PCR、酶活性测定"></div>
+      <div class="form-group"><label>项目描述</label><textarea rows="3" placeholder="简要描述实验目的和背景"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-default" onclick="closeModal('modal-new-project')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('modal-new-project')">创建项目</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: Add Reminder ==================== -->
+  <div class="modal-overlay" id="modal-add-reminder">
+    <div class="modal">
+      <h3>添加采集提醒</h3>
+      <div class="form-group"><label>提醒名称</label><input type="text" placeholder="如：取样检测pH值"></div>
+      <div class="form-group" style="display:flex;gap:10px">
+        <div style="flex:1"><label>日期</label><input type="date" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit"></div>
+        <div style="flex:1"><label>时间</label><input type="time" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit"></div>
+      </div>
+      <div class="form-group"><label>重复规则</label>
+        <select style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit">
+          <option>不重复（单次）</option><option>每天</option><option>每周</option><option>每2小时</option>
+        </select>
+      </div>
+      <div class="form-group"><label>提前通知</label>
+        <select style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit">
+          <option>5分钟前</option><option>15分钟前</option><option>30分钟前</option><option>1小时前</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-default" onclick="closeModal('modal-add-reminder')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('modal-add-reminder')">添加提醒</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Page Manager =====
+    function showPage(page) {
+      // Update active nav
+      document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+      // Find the nav link matching this page (works for both click events and initial load)
+      document.querySelectorAll('.sidebar-nav a').forEach(a => {
+        const onclick = a.getAttribute('onclick') || '';
+        if (onclick.indexOf("showPage('" + page + "')") !== -1) {
+          a.classList.add('active');
+        }
+      });
+
+      const main = document.getElementById('main-content');
+      switch(page) {
+        case 'projects': main.innerHTML = renderProjectsPage(); break;
+        case 'project-detail': main.innerHTML = renderProjectDetailPage(); break;
+        case 'data-record': main.innerHTML = renderDataRecordPage(); break;
+        case 'data-history': main.innerHTML = renderDataHistoryPage(); break;
+        case 'reminders': main.innerHTML = renderRemindersPage(); break;
+        case 'analysis': main.innerHTML = renderAnalysisPage(); break;
+        case 'public-data': main.innerHTML = renderPublicDataPage(); break;
+      }
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // ===== Page 1: Project List (Home) =====
+    function renderProjectsPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>我的实验项目</h1>
+            <p class="breadcrumb">首页 / <span>项目列表</span></p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-new-project')">+ 新建项目</button>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" type="text" placeholder="搜索项目名称...">
+          <button class="btn btn-default">搜索</button>
+          <select style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit">
+            <option>全部状态</option><option>进行中</option><option>已完成</option><option>已归档</option>
+          </select>
+        </div>
+        <div class="card-grid">
+          <div class="card" onclick="showPage('project-detail')">
+            <div class="card-title">细胞增殖实验 - MTT法 <span class="tag tag-success">进行中</span></div>
+            <div class="card-desc">检测化合物A对HeLa细胞增殖的影响，浓度梯度实验</div>
+            <div class="card-meta">
+              <span>📊 24条记录</span><span>🕐 2026-07-05</span><span>👤 张博士</span>
+            </div>
+          </div>
+          <div class="card" onclick="showPage('project-detail')">
+            <div class="card-title">酶活性测定 <span class="tag tag-warning">待开始</span></div>
+            <div class="card-desc">测定不同pH条件下淀粉酶活性变化曲线</div>
+            <div class="card-meta">
+              <span>📊 0条记录</span><span>🕐 2026-07-04</span><span>👤 李同学</span>
+            </div>
+          </div>
+          <div class="card" onclick="showPage('project-detail')">
+            <div class="card-title">蛋白表达纯化 <span class="tag tag-success">进行中</span></div>
+            <div class="card-desc">大肠杆菌表达系统，Ni柱纯化目标蛋白</div>
+            <div class="card-meta">
+              <span>📊 18条记录</span><span>🕐 2026-07-03</span><span>👤 王老师</span>
+            </div>
+          </div>
+          <div class="card" onclick="showPage('project-detail')">
+            <div class="card-title">PCR条件优化 <span class="tag tag-default">已完成</span></div>
+            <div class="card-desc">优化引物浓度与退火温度，提高扩增效率</div>
+            <div class="card-meta">
+              <span>📊 36条记录</span><span>🕐 2026-06-28</span><span>👤 张博士</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Page 2: Project Detail =====
+    function renderProjectDetailPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>细胞增殖实验 - MTT法</h1>
+            <p class="breadcrumb"><a href="#" onclick="showPage('projects');event.preventDefault()" style="color:var(--primary);text-decoration:none">项目列表</a> / <span>项目详情</span></p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-default" onclick="showPage('reminders');event.preventDefault()">⏰ 提醒</button>
+            <button class="btn btn-primary" onclick="showPage('data-record');event.preventDefault()">+ 添加记录</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active">项目概览</div>
+          <div class="tab">数据条目</div>
+          <div class="tab">协作成员</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card">
+            <div class="card-title">基本信息</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">实验类型：细胞实验</p>
+            <p style="font-size:13px;color:var(--text-secondary)">创建时间：2026-07-05 14:30</p>
+            <p style="font-size:13px;color:var(--text-secondary)">数据记录：24条</p>
+          </div>
+          <div class="card">
+            <div class="card-title">最近活动</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">📝 记录了第24组数据 - 2小时前</p>
+            <p style="font-size:13px;color:var(--text-secondary)">⏰ 设置了新的提醒 - 5小时前</p>
+            <p style="font-size:13px;color:var(--text-secondary)">📊 完成数据分析 - 昨天</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Page 3: Data Record =====
+    function renderDataRecordPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>记录实验数据</h1>
+            <p class="breadcrumb"><a href="#" onclick="showPage('projects');event.preventDefault()" style="color:var(--primary);text-decoration:none">项目列表</a> / <a href="#" onclick="showPage('project-detail');event.preventDefault()" style="color:var(--primary);text-decoration:none">细胞增殖实验</a> / <span>数据记录</span></p>
+          </div>
+          <span style="font-size:13px;color:var(--success)">🟢 草稿已自动保存</span>
+        </div>
+
+        <div class="record-grid">
+          <div class="record-item">
+            <label class="required">样品编号</label>
+            <input type="text" placeholder="如：A-1">
+          </div>
+          <div class="record-item">
+            <label class="required">药物浓度 (μM)</label>
+            <input type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div class="record-item">
+            <label class="required">OD值 (570nm)</label>
+            <input type="number" step="0.001" placeholder="0.000">
+          </div>
+          <div class="record-item">
+            <label>处理时间 (h)</label>
+            <input type="number" step="0.5" placeholder="24">
+          </div>
+          <div class="record-item">
+            <label class="required">细胞存活率 (%)</label>
+            <input type="number" step="0.1" placeholder="0.0">
+          </div>
+          <div class="record-item">
+            <label>备注</label>
+            <textarea rows="2" placeholder="实验观察、异常情况等"></textarea>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:13px;font-weight:500;margin-bottom:6px;display:block">实验图片</label>
+          <div class="image-upload-area" style="max-width:300px">
+            <div style="font-size:28px">📷</div>
+            <div style="margin-top:6px">点击或拖拽上传图片</div>
+            <div style="font-size:11px;color:#aaa">支持 JPG/PNG，单张≤10MB</div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary">💾 保存记录</button>
+          <button class="btn btn-default">📋 暂存草稿</button>
+          <button class="btn btn-default">取消</button>
+        </div>
+      `;
+    }
+
+    // ===== Page 4: Data History =====
+    function renderDataHistoryPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>数据历史</h1>
+            <p class="breadcrumb"><a href="#" onclick="showPage('projects');event.preventDefault()" style="color:var(--primary);text-decoration:none">项目列表</a> / <span>数据历史</span></p>
+          </div>
+          <button class="btn btn-default">📥 导出CSV</button>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>记录时间</th><th>样品编号</th><th>药物浓度(μM)</th><th>OD值</th><th>存活率(%)</th><th>记录人</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>2026-07-06 10:00</td><td>A-1</td><td>0.00</td><td>0.852</td><td>100.0</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-2</td><td>0.01</td><td>0.801</td><td>94.0</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-3</td><td>0.10</td><td>0.645</td><td>75.7</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-4</td><td>1.00</td><td>0.412</td><td>48.4</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-5</td><td>10.0</td><td>0.178</td><td>20.9</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:12px">共 24 条记录</p>
+      `;
+    }
+
+    // ===== Page 5: Reminders =====
+    function renderRemindersPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>采集提醒设置</h1>
+            <p class="breadcrumb"><a href="#" onclick="showPage('projects');event.preventDefault()" style="color:var(--primary);text-decoration:none">项目列表</a> / <a href="#" onclick="showPage('project-detail');event.preventDefault()" style="color:var(--primary);text-decoration:none">细胞增殖实验</a> / <span>提醒设置</span></p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-reminder')">+ 添加提醒</button>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>取样检测OD值</strong>
+                  <div class="timeline-time">每天 08:00 | 提前 15分钟 | 重复: 每天</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>更换培养基</strong>
+                  <div class="timeline-time">2026-07-08 14:00 | 提前 30分钟 | 不重复</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>细胞计数</strong>
+                  <div class="timeline-time">每天 18:00 | 提前 10分钟 | 重复: 每天</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" style="display:none">
+          <div class="empty-icon">⏰</div>
+          <p>还没有设置任何提醒</p>
+          <button class="btn btn-primary" onclick="openModal('modal-add-reminder')">添加第一个提醒</button>
+        </div>
+      `;
+    }
+
+    // ===== Page 6: Data Analysis =====
+    function renderAnalysisPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>Agent数据分析</h1>
+            <p class="breadcrumb"><a href="#" onclick="showPage('projects');event.preventDefault()" style="color:var(--primary);text-decoration:none">项目列表</a> / <a href="#" onclick="showPage('project-detail');event.preventDefault()" style="color:var(--primary);text-decoration:none">细胞增殖实验</a> / <span>数据分析</span></p>
+          </div>
+          <button class="btn btn-success">📄 生成报告</button>
+        </div>
+
+        <div class="analysis-controls">
+          <div class="control-group"><label>数据条目</label><select><option>细胞存活率 (%)</option><option>OD值</option></select></div>
+          <div class="control-group"><label>时间范围（起）</label><input type="date" value="2026-07-05"></div>
+          <div class="control-group"><label>时间范围（止）</label><input type="date" value="2026-07-06"></div>
+          <div class="control-group"><label>数学模型（可选）</label>
+            <select>
+              <option>不选择（Agent自动推荐）</option><option>线性回归</option><option>多项式拟合</option><option>指数模型</option><option>对数模型</option><option>Sigmoid (剂量-效应)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="align-self:flex-end">▶ 开始分析</button>
+        </div>
+
+        <div class="chart-placeholder">
+          <div>
+            <div style="font-size:40px;margin-bottom:8px">📈</div>
+            <div>选择参数后点击"开始分析"，Agent将进行模型拟合与相关性分析</div>
+            <div style="font-size:12px;color:#aaa;margin-top:4px">数据散点图 + 拟合曲线将显示在此区域</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <h3 style="font-size:16px;margin-bottom:12px">分析结果</h3>
+          <table class="result-table">
+            <thead><tr><th>指标</th><th>值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>最优模型</td><td>Sigmoid (4参数)</td><td>IC50 = 0.89 μM</td></tr>
+              <tr><td>R²</td><td>0.987</td><td>拟合优度高</td></tr>
+              <tr><td>IC50</td><td>0.89 μM</td><td>半数抑制浓度</td></tr>
+              <tr><td>最大抑制率</td><td>79.1%</td><td>10μM浓度下</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Agent 分析摘要</div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;line-height:1.8">
+            化合物A对HeLa细胞增殖具有显著的剂量依赖性抑制作用。最优拟合模型为Sigmoid四参数模型，R²=0.987表明拟合效果优良。
+            计算得IC50值为0.89 μM，属于中等活性范围。在最高测试浓度（10 μM）下，抑制率达到79.1%，未达到完全抑制，
+            建议后续实验可适当提高浓度范围。建议进行至少3次独立重复实验以验证结果稳定性。
+          </p>
+        </div>
+      `;
+    }
+
+    // ===== Page 7: Public Data =====
+    function renderPublicDataPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>公开实验数据</h1>
+            <p class="breadcrumb">首页 / <span>公开数据</span></p>
+          </div>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" type="text" placeholder="搜索实验名称、方法、关键词...">
+          <button class="btn btn-primary">🔍 搜索</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <span class="tag tag-default" style="cursor:pointer">全部</span>
+          <span class="tag tag-default" style="cursor:pointer">细胞实验</span>
+          <span class="tag tag-default" style="cursor:pointer">分子生物学</span>
+          <span class="tag tag-default" style="cursor:pointer">生化分析</span>
+          <span class="tag tag-default" style="cursor:pointer">动物实验</span>
+        </div>
+
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-title">MTT法检测化合物细胞毒性 <span class="tag tag-success">公开</span></div>
+            <div class="card-desc">标准MTT法流程，96孔板，HeLa细胞系，48h处理</div>
+            <div class="card-meta">
+              <span>📊 120条数据</span><span>👤 某大学实验室</span><span>📅 2026-06</span>
+            </div>
+            <button class="btn btn-sm btn-default" style="margin-top:8px">查看详情</button>
+          </div>
+          <div class="card">
+            <div class="card-title">淀粉酶活性-pH梯度 <span class="tag tag-success">公开</span></div>
+            <div class="card-desc">pH 3-10梯度下α-淀粉酶活性测定数据</div>
+            <div class="card-meta">
+              <span>📊 48条数据</span><span>👤 公开数据集</span><span>📅 2026-05</span>
+            </div>
+            <button class="btn btn-sm btn-default" style="margin-top:8px">查看详情</button>
+          </div>
+          <div class="card">
+            <div class="card-title">PCR引物设计参考 <span class="tag tag-success">公开</span></div>
+            <div class="card-desc">常用引物序列及Tm值计算参考数据</div>
+            <div class="card-meta">
+              <span>📊 200条数据</span><span>👤 社区贡献</span><span>📅 2026-04</span>
+            </div>
+            <button class="btn btn-sm btn-default" style="margin-top:8px">查看详情</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Initialize: Show projects page =====
+    showPage('projects');
+  </script>
+</body>
+</html>
