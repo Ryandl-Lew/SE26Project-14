@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生物实验助手 - 界面原型</title>
+  <style>
+    /* ===== Reset & Variables ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1677ff;
+      --primary-hover: #4096ff;
+      --success: #52c41a;
+      --warning: #faad14;
+      --error: #ff4d4f;
+      --bg: #f5f5f5;
+      --bg-card: #fff;
+      --text: #222;
+      --text-secondary: #666;
+      --border: #e8e8e8;
+      --sidebar-w: 220px;
+      --header-h: 56px;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ===== Layout ===== */
+    .app { display: flex; min-height: 100vh; }
+
+    /* ===== Header ===== */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-h);
+      background: #001529;
+      color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+    .header-logo {
+      font-size: 18px; font-weight: 700; letter-spacing: 1px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .header-logo .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .header-actions { display: flex; align-items: center; gap: 16px; }
+    .header-btn {
+      background: rgba(255,255,255,0.15);
+      color: #fff; border: none; padding: 6px 14px; border-radius: var(--radius);
+      cursor: pointer; font-size: 14px; transition: background .2s;
+    }
+    .header-btn:hover { background: rgba(255,255,255,0.25); }
+    .header-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .notification-badge {
+      position: relative; cursor: pointer;
+    }
+    .notification-badge::after {
+      content: ''; position: absolute; top: -2px; right: -2px;
+      width: 8px; height: 8px; background: var(--error); border-radius: 50%;
+      border: 2px solid #001529;
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      position: fixed; top: var(--header-h); left: 0; bottom: 0;
+      width: var(--sidebar-w); background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 16px 0; overflow-y: auto; z-index: 50;
+    }
+    .sidebar-title { padding: 0 20px 16px; font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+    .sidebar-nav { list-style: none; }
+    .sidebar-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; color: var(--text); text-decoration: none;
+      font-size: 14px; transition: all .2s; border-left: 3px solid transparent;
+    }
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      background: #e6f4ff; color: var(--primary); border-left-color: var(--primary);
+    }
+    .sidebar-nav a .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+
+    /* ===== Main Content ===== */
+    .main {
+      flex: 1; margin-left: var(--sidebar-w); margin-top: var(--header-h);
+      padding: 24px; min-height: calc(100vh - var(--header-h));
+    }
+
+    /* ===== Page Header ===== */
+    .page-header { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 22px; font-weight: 600; }
+    /* ===== Cards Grid ===== */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--bg-card); border-radius: var(--radius);
+      padding: 20px; border: 1px solid var(--border);
+      transition: box-shadow .2s; cursor: pointer;
+    }
+    .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .card-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+    .card-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+    .card-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: var(--radius); font-size: 14px;
+      cursor: pointer; border: 1px solid transparent; transition: all .2s;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-default { background: #fff; color: var(--text); border-color: var(--border); }
+    .btn-default:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-danger { background: #fff; color: var(--error); border-color: var(--error); }
+    .btn-danger:hover { background: #fff2f0; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-sm { padding: 4px 12px; font-size: 12px; }
+
+    /* ===== Search ===== */
+    .search-bar {
+      display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 200px; padding: 8px 14px;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 14px; outline: none; font-family: inherit;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
+
+    /* ===== Data Record Form ===== */
+    .record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .record-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .record-item label {
+      display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .record-item .required::after { content: ' *'; color: var(--error); }
+    .record-item input, .record-item textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .record-item input:focus, .record-item textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1);
+    }
+    .record-item textarea { resize: vertical; min-height: 60px; }
+    .image-upload-area {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 24px; text-align: center; color: var(--text-secondary);
+      cursor: pointer; transition: all .2s; background: #fafafa;
+    }
+    .image-upload-area:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ===== Timeline ===== */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before {
+      content: ''; position: absolute; left: 6px; top: 4px; bottom: 4px;
+      width: 2px; background: var(--border);
+    }
+    .timeline-item { position: relative; margin-bottom: 20px; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -19px; top: 6px;
+      width: 10px; height: 10px; border-radius: 50%; background: var(--primary);
+      border: 2px solid #fff; box-shadow: 0 0 0 2px var(--primary);
+    }
+    .timeline-content {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; font-size: 14px;
+    }
+    .timeline-time { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+
+    /* ===== Chart Area ===== */
+    .chart-placeholder {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 40px; text-align: center;
+      min-height: 300px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); font-size: 15px;
+    }
+    .analysis-controls {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+      align-items: flex-end;
+    }
+    .analysis-controls .control-group { display: flex; flex-direction: column; gap: 4px; }
+    .analysis-controls label { font-size: 12px; color: var(--text-secondary); }
+    .analysis-controls select, .analysis-controls input {
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 14px; font-family: inherit; outline: none; min-width: 160px;
+    }
+    .result-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+    .result-table th, .result-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left; }
+    .result-table th { background: #fafafa; font-weight: 600; }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-secondary);
+    }
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state p { margin-bottom: 16px; font-size: 15px; }
+
+    /* ===== Tag / Badge ===== */
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 12px; margin-right: 4px;
+    }
+    .tag-success { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
+    .tag-warning { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+    .tag-default { background: #f5f5f5; color: #666; border: 1px solid #d9d9d9; }
+
+    /* ===== Tabs ===== */
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab {
+      padding: 10px 20px; cursor: pointer; font-size: 14px;
+      color: var(--text-secondary); border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+    .tab:hover { color: var(--primary); }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 500; }
+
+    .detail-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric-card {
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .metric-card .metric-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .metric-card .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .metric-card .metric-note {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .info-list {
+      display: grid;
+      gap: 10px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: var(--text-secondary); }
+    .info-row .value { color: var(--text); font-weight: 500; text-align: right; }
+    .flow-list { display: grid; gap: 12px; }
+    .flow-item {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .flow-dot {
+      width: 12px;
+      height: 12px;
+      margin-top: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.12);
+    }
+    .flow-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+    }
+    .flow-card .flow-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .flow-card .flow-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .progress-list { display: grid; gap: 14px; }
+    .progress-item { display: grid; gap: 6px; }
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #edf0f5;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), #69a7ff);
+    }
+    .subpage-toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .subpage-toolbar .hint {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Todo List ===== */
+    .todo-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .todo-summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .todo-summary-card .summary-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; flex-shrink: 0;
+    }
+    .todo-summary-card .summary-info .summary-num {
+      font-size: 26px; font-weight: 700; color: var(--text);
+    }
+    .todo-summary-card .summary-info .summary-label {
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .todo-list { display: grid; gap: 12px; }
+    .todo-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      transition: box-shadow .2s;
+    }
+    .todo-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .todo-item-left { flex: 1; min-width: 200px; }
+    .todo-item-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .todo-item-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+    .todo-item-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary); flex-wrap: wrap; }
+    .todo-item-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .todo-priority-high { background: #fff2f0; color: var(--error); border: 1px solid #ffccc7; }
+    .todo-priority-medium { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+    .todo-priority-low { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
+
+    /* ===== Messages / Chat ===== */
+    .chat-wrap {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      height: calc(100vh - var(--header-h) - 140px);
+      min-height: 480px;
+      background: var(--bg-card);
+    }
+    .chat-sidebar {
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      background: #fafafa;
+    }
+    .chat-sidebar-title {
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .chat-contact {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background .2s;
+      border-left: 3px solid transparent;
+    }
+    .chat-contact:hover { background: #f0f0f0; }
+    .chat-contact.active { background: #e6f4ff; border-left-color: var(--primary); }
+    .chat-contact .contact-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600; color: #fff; flex-shrink: 0;
+    }
+    .chat-contact .contact-info { flex: 1; min-width: 0; }
+    .chat-contact .contact-name { font-size: 14px; font-weight: 500; }
+    .chat-contact .contact-preview {
+      font-size: 12px; color: var(--text-secondary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chat-contact .contact-badge {
+      background: var(--error); color: #fff; font-size: 11px;
+      border-radius: 10px; padding: 0 6px; line-height: 18px; min-width: 18px; text-align: center;
+    }
+    .chat-main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+    .chat-header .chat-header-name { font-size: 15px; font-weight: 600; }
+    .chat-header .chat-header-status { font-size: 12px; color: var(--success); }
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg);
+    }
+    .chat-msg {
+      display: flex;
+      gap: 8px;
+      max-width: 75%;
+    }
+    .chat-msg.self { align-self: flex-end; flex-direction: row-reverse; }
+    .chat-msg .msg-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0;
+    }
+    .chat-msg .msg-bubble {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .chat-msg.self .msg-bubble {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .chat-msg .msg-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .chat-input-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+    .chat-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,.1); }
+
+    /* ===== Action Bar ===== */
+    .action-bar {
+      display: flex; gap: 10px; padding: 16px 0;
+      border-top: 1px solid var(--border); margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== Toggle Switch ===== */
+    .toggle {
+      position: relative; display: inline-block; width: 44px; height: 22px;
+    }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+      cursor: pointer; transition: .3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; left: 2px; bottom: 2px;
+      width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: .3s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--primary); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 991px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .card-grid { grid-template-columns: 1fr; }
+      .record-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767px) {
+      .header { padding: 0 12px; }
+      .main { padding: 12px; }
+      .page-header h1 { font-size: 18px; }
+      .analysis-controls { flex-direction: column; }
+      .analysis-controls select, .analysis-controls input { width: 100%; }
+      .detail-grid, .metric-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Modal Overlay ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: var(--radius); width: 90%; max-width: 520px;
+      padding: 24px; box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+    .modal h3 { margin-bottom: 16px; font-size: 17px; }
+    .modal .form-group { margin-bottom: 14px; }
+    .modal .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--text-secondary); }
+    .modal .form-group input, .modal .form-group textarea {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .modal .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- ==================== HEADER ==================== -->
+    <header class="header">
+      <div class="header-logo">
+        <div class="logo-icon">🧬</div>
+        生物实验助手
+      </div>
+      <div class="header-actions">
+        <span class="notification-badge" title="新提醒">🔔</span>
+        <div class="header-avatar" title="用户">张</div>
+      </div>
+    </header>
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside class="sidebar">
+      <div class="sidebar-title">导航菜单</div>
+      <ul class="sidebar-nav">
+        <li><a href="#" class="active" onclick="showPage('projects')"><span class="nav-icon">📋</span> 我的项目</a></li>
+        <li><a href="#" onclick="showPage('todo')"><span class="nav-icon">✅</span> 我的待办</a></li>
+        <li><a href="#" onclick="showPage('analysis')"><span class="nav-icon">🔬</span> 数据分析</a></li>
+        <li><a href="#" onclick="showPage('messages')"><span class="nav-icon">💬</span> 消息</a></li>
+      </ul>
+    </aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main" id="main-content">
+      <!-- Dynamic content rendered by JS -->
+    </main>
+  </div>
+
+  <!-- ==================== MODAL: New Project ==================== -->
+  <div class="modal-overlay" id="modal-new-project">
+    <div class="modal">
+      <h3>新建实验项目</h3>
+      <div class="form-group"><label>项目名称 <span style="color:#ff4d4f">*</span></label><input type="text" placeholder="请输入项目名称"></div>
+      <div class="form-group"><label>实验类型</label><input type="text" placeholder="如：细胞培养、PCR、酶活性测定"></div>
+      <div class="form-group"><label>项目描述</label><textarea rows="3" placeholder="简要描述实验目的和背景"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-default" onclick="closeModal('modal-new-project')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('modal-new-project')">创建项目</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: Add Reminder ==================== -->
+  <div class="modal-overlay" id="modal-add-reminder">
+    <div class="modal">
+      <h3>添加采集提醒</h3>
+      <div class="form-group"><label>提醒名称</label><input type="text" placeholder="如：取样检测pH值"></div>
+      <div class="form-group" style="display:flex;gap:10px">
+        <div style="flex:1"><label>日期</label><input type="date" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit"></div>
+        <div style="flex:1"><label>时间</label><input type="time" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit"></div>
+      </div>
+      <div class="form-group"><label>重复规则</label>
+        <select style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit">
+          <option>不重复（单次）</option><option>每天</option><option>每周</option><option>每2小时</option>
+        </select>
+      </div>
+      <div class="form-group"><label>提前通知</label>
+        <select style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit">
+          <option>5分钟前</option><option>15分钟前</option><option>30分钟前</option><option>1小时前</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-default" onclick="closeModal('modal-add-reminder')">取消</button>
+        <button class="btn btn-primary" onclick="closeModal('modal-add-reminder')">添加提醒</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const projectCatalog = {
+      'cell-mtt': {
+        name: '细胞增殖实验 - MTT法',
+        status: '进行中',
+        statusClass: 'tag-success',
+        type: '细胞实验',
+        owner: '张博士',
+        createdAt: '2026-07-05 14:30',
+        recordCount: 24,
+        summary: '检测化合物A对HeLa细胞增殖的影响，浓度梯度实验',
+        objective: '观察化合物A对HeLa细胞活性的抑制曲线，得到IC50参考值。',
+        recentActivity: ['记录了第24组数据 - 2小时前', '设置了新的提醒 - 5小时前', '完成数据分析 - 昨天'],
+        recordRows: [
+          ['A-1', '0.00 μM', '0.852', '100.0%'],
+          ['A-2', '0.01 μM', '0.801', '94.0%'],
+          ['A-3', '0.10 μM', '0.645', '75.7%'],
+          ['A-4', '1.00 μM', '0.412', '48.4%']
+        ],
+        flowSteps: [
+          ['样品准备', '完成细胞铺板和药物稀释，进入加药阶段'],
+          ['培养处理', '药物处理 48 小时，观察细胞状态变化'],
+          ['检测读取', '使用酶标仪读取 570nm OD 值'],
+          ['结果分析', '拟合剂量-效应曲线并估算 IC50']
+        ],
+        progress: [
+          ['样品准备', 100, '已完成'],
+          ['培养处理', 100, '已完成'],
+          ['检测读取', 70, '进行中'],
+          ['结果分析', 55, '待优化']
+        ]
+      },
+      'enzyme': {
+        name: '酶活性测定',
+        status: '待开始',
+        statusClass: 'tag-warning',
+        type: '生化分析',
+        owner: '李同学',
+        createdAt: '2026-07-04 09:20',
+        recordCount: 0,
+        summary: '测定不同 pH 条件下淀粉酶活性变化曲线',
+        objective: '比较不同 pH 下酶活性的峰值区间，确定最适反应条件。',
+        recentActivity: ['尚未录入数据，等待开始实验'],
+        recordRows: [],
+        flowSteps: [
+          ['实验设计', '确认 pH 梯度与对照组设置'],
+          ['样本配置', '准备酶液和底物溶液'],
+          ['数据采集', '逐组测定吸光度变化'],
+          ['曲线分析', '绘制 pH-活性关系曲线']
+        ],
+        progress: [
+          ['实验设计', 100, '已完成'],
+          ['样本配置', 40, '准备中'],
+          ['数据采集', 0, '未开始'],
+          ['曲线分析', 0, '未开始']
+        ]
+      },
+      'protein': {
+        name: '蛋白表达纯化',
+        status: '进行中',
+        statusClass: 'tag-success',
+        type: '分子生物学',
+        owner: '王老师',
+        createdAt: '2026-07-03 16:10',
+        recordCount: 18,
+        summary: '大肠杆菌表达系统，Ni 柱纯化目标蛋白',
+        objective: '完成目标蛋白表达、裂解、纯化和纯度评估。',
+        recentActivity: ['记录了纯化峰图 - 3小时前', '补充了 SDS-PAGE 结果 - 昨天'],
+        recordRows: [
+          ['P-01', '诱导表达', 'OD600 0.8', '表达正常'],
+          ['P-02', '裂解上清', '超声 12 min', '可见沉淀'],
+          ['P-03', 'Ni 柱洗脱', '20 mM 组分', '目标条带明显']
+        ],
+        flowSteps: [
+          ['构建表达', '完成载体转化和菌株筛选'],
+          ['诱导表达', '优化 IPTG 浓度和诱导时间'],
+          ['亲和纯化', '使用 Ni 柱分离目标蛋白'],
+          ['结果验证', '通过 SDS-PAGE 和浓度测定确认纯度']
+        ],
+        progress: [
+          ['构建表达', 100, '已完成'],
+          ['诱导表达', 100, '已完成'],
+          ['亲和纯化', 80, '进行中'],
+          ['结果验证', 60, '待补充']
+        ]
+      },
+      'pcr': {
+        name: 'PCR条件优化',
+        status: '已完成',
+        statusClass: 'tag-default',
+        type: '分子生物学',
+        owner: '张博士',
+        createdAt: '2026-06-28 11:05',
+        recordCount: 36,
+        summary: '优化引物浓度与退火温度，提高扩增效率',
+        objective: '找到稳定、特异且高效的 PCR 反应条件。',
+        recentActivity: ['完成最终条件确认 - 2天前', '整理扩增图像 - 3天前'],
+        recordRows: [
+          ['PCR-1', '退火 58℃', '引物 0.2μM', '条带清晰'],
+          ['PCR-2', '退火 60℃', '引物 0.3μM', '特异性较好'],
+          ['PCR-3', '退火 62℃', '引物 0.4μM', '效率下降']
+        ],
+        flowSteps: [
+          ['体系设计', '确定模板、引物和酶体系'],
+          ['梯度测试', '对退火温度进行梯度实验'],
+          ['重复验证', '对最佳条件进行重复验证'],
+          ['最终归档', '形成可复用的标准 PCR 条件']
+        ],
+        progress: [
+          ['体系设计', 100, '已完成'],
+          ['梯度测试', 100, '已完成'],
+          ['重复验证', 100, '已完成'],
+          ['最终归档', 100, '已完成']
+        ]
+      }
+    };
+
+    let currentProjectId = 'cell-mtt';
+    let currentProjectDetailTab = 'basic';
+
+    function getCurrentProject() {
+      return projectCatalog[currentProjectId] || projectCatalog['cell-mtt'];
+    }
+
+    function getStatusTagClass(statusClass) {
+      return statusClass || 'tag-default';
+    }
+
+    // ===== Page Manager =====
+    function showPage(page) {
+      // Update active nav
+      document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+      // Find the nav link matching this page (works for both click events and initial load)
+      document.querySelectorAll('.sidebar-nav a').forEach(a => {
+        const onclick = a.getAttribute('onclick') || '';
+        if (onclick.indexOf("showPage('" + page + "')") !== -1) {
+          a.classList.add('active');
+        }
+      });
+
+      const main = document.getElementById('main-content');
+      switch(page) {
+        case 'projects': main.innerHTML = renderProjectsPage(); break;
+        case 'todo': main.innerHTML = renderTodoPage(); break;
+        case 'project-detail': main.innerHTML = renderProjectDetailPage(); break;
+        case 'data-record': main.innerHTML = renderDataRecordPage(); break;
+        case 'data-history': main.innerHTML = renderDataHistoryPage(); break;
+        case 'reminders': main.innerHTML = renderRemindersPage(); break;
+        case 'analysis': main.innerHTML = renderAnalysisPage(); break;
+        case 'messages': main.innerHTML = renderMessagesPage(); break;
+      }
+    }
+
+    function openProjectDetail(projectId) {
+      currentProjectId = projectId;
+      currentProjectDetailTab = 'basic';
+      showPage('project-detail');
+    }
+
+    function showProjectDetailTab(tab) {
+      currentProjectDetailTab = tab;
+      showPage('project-detail');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('show'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+    // ===== Page 1: Project List (Home) =====
+    function renderProjectsPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>我的实验项目</h1>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-new-project')">+ 新建项目</button>
+        </div>
+        <div class="search-bar">
+          <input class="search-input" type="text" placeholder="搜索项目名称...">
+          <button class="btn btn-default">搜索</button>
+          <select style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit">
+            <option>全部状态</option><option>进行中</option><option>已完成</option><option>已归档</option>
+          </select>
+        </div>
+        <div class="card-grid">
+          <div class="card" onclick="openProjectDetail('cell-mtt')">
+            <div class="card-title">细胞增殖实验 - MTT法 <span class="tag tag-success">进行中</span></div>
+            <div class="card-desc">检测化合物A对HeLa细胞增殖的影响，浓度梯度实验</div>
+            <div class="card-meta">
+              <span>📊 24条记录</span><span>🕐 2026-07-05</span><span>👤 张博士</span>
+            </div>
+          </div>
+          <div class="card" onclick="openProjectDetail('enzyme')">
+            <div class="card-title">酶活性测定 <span class="tag tag-warning">待开始</span></div>
+            <div class="card-desc">测定不同pH条件下淀粉酶活性变化曲线</div>
+            <div class="card-meta">
+              <span>📊 0条记录</span><span>🕐 2026-07-04</span><span>👤 李同学</span>
+            </div>
+          </div>
+          <div class="card" onclick="openProjectDetail('protein')">
+            <div class="card-title">蛋白表达纯化 <span class="tag tag-success">进行中</span></div>
+            <div class="card-desc">大肠杆菌表达系统，Ni柱纯化目标蛋白</div>
+            <div class="card-meta">
+              <span>📊 18条记录</span><span>🕐 2026-07-03</span><span>👤 王老师</span>
+            </div>
+          </div>
+          <div class="card" onclick="openProjectDetail('pcr')">
+            <div class="card-title">PCR条件优化 <span class="tag tag-default">已完成</span></div>
+            <div class="card-desc">优化引物浓度与退火温度，提高扩增效率</div>
+            <div class="card-meta">
+              <span>📊 36条记录</span><span>🕐 2026-06-28</span><span>👤 张博士</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Page: My Todo =====
+    function renderTodoPage() {
+      const todoExperimentItems = [
+        { title: '细胞增殖实验 - 补充浓度梯度数据', project: '细胞增殖实验 - MTT法', desc: '需要补充 10μM 和 50μM 两组 OD 值读数', deadline: '2026-07-07', priority: 'high', priorityText: '紧急' },
+        { title: '蛋白纯化 - SDS-PAGE 结果录入', project: '蛋白表达纯化', desc: '提交亲和纯化洗脱组分的电泳图片和结论', deadline: '2026-07-08', priority: 'medium', priorityText: '重要' },
+        { title: '酶活性测定 - 启动样本配置', project: '酶活性测定', desc: '根据实验设计完成酶液和底物溶液的配制', deadline: '2026-07-09', priority: 'medium', priorityText: '重要' },
+        { title: 'PCR条件优化 - 最终归档', project: 'PCR条件优化', desc: '整理标准 PCR 条件并提交归档报告', deadline: '2026-07-10', priority: 'low', priorityText: '一般' }
+      ];
+
+      const todoDataItems = [
+        { title: '细胞存活率数据待提交', project: '细胞增殖实验 - MTT法', desc: '第 25~28 组存活率数据尚未提交，请核对后上传', deadline: '2026-07-07', priority: 'high', priorityText: '紧急' },
+        { title: '纯化峰图待上传', project: '蛋白表达纯化', desc: 'Ni 柱洗脱峰图尚未上传至项目记录', deadline: '2026-07-08', priority: 'medium', priorityText: '重要' },
+        { title: 'PCR 扩增图像待整理', project: 'PCR条件优化', desc: '3 组退火温度的扩增图像需补充备注后提交', deadline: '2026-07-10', priority: 'low', priorityText: '一般' }
+      ];
+
+      const totalCount = todoExperimentItems.length + todoDataItems.length;
+      const urgentCount = [...todoExperimentItems, ...todoDataItems].filter(i => i.priority === 'high').length;
+      const experimentCount = todoExperimentItems.length;
+
+      function renderTodoGroup(list) {
+        return list.map(item => `
+          <div class="todo-item">
+            <div class="todo-item-left">
+              <div class="todo-item-title">${item.title}</div>
+              <div class="todo-item-desc">${item.desc}</div>
+              <div class="todo-item-meta">
+                <span>📁 ${item.project}</span>
+                <span>🕐 截止 ${item.deadline}</span>
+              </div>
+            </div>
+            <div class="todo-item-right">
+              <span class="tag todo-priority-${item.priority}">${item.priorityText}</span>
+              <button class="btn btn-sm btn-primary">去处理</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      return `
+        <div class="page-header">
+          <div>
+            <h1>我的待办</h1>
+          </div>
+        </div>
+
+        <div class="todo-summary">
+          <div class="todo-summary-card">
+            <div class="summary-icon" style="background:#fff2f0">📋</div>
+            <div class="summary-info">
+              <div class="summary-num">${totalCount}</div>
+              <div class="summary-label">待办总数</div>
+            </div>
+          </div>
+          <div class="todo-summary-card">
+            <div class="summary-icon" style="background:#fffbe6">⚡</div>
+            <div class="summary-info">
+              <div class="summary-num">${urgentCount}</div>
+              <div class="summary-label">紧急事项</div>
+            </div>
+          </div>
+          <div class="todo-summary-card">
+            <div class="summary-icon" style="background:#e6f4ff">🔬</div>
+            <div class="summary-info">
+              <div class="summary-num">${experimentCount}</div>
+              <div class="summary-label">待做实验</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-panel">
+            <div class="section-title">待做实验</div>
+            <div class="todo-list">
+              ${renderTodoGroup(todoExperimentItems)}
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <div class="section-title">待提交数据</div>
+            <div class="todo-list">
+              ${renderTodoGroup(todoDataItems)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Page 2: Project Detail =====
+    function renderProjectDetailPage() {
+      const project = getCurrentProject();
+      const currentTab = currentProjectDetailTab;
+      const tabContent = {
+        basic: renderProjectBasicInfo(project),
+        record: renderProjectRecordTab(project),
+        flow: renderProjectFlowTab(project),
+        progress: renderProjectProgressTab(project)
+      }[currentTab] || renderProjectBasicInfo(project);
+
+      return `
+        <div class="page-header">
+          <div>
+            <h1>${project.name}</h1>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-default" onclick="showProjectDetailTab('record');event.preventDefault()">📝 数据记录</button>
+            <button class="btn btn-primary" onclick="showPage('data-record');event.preventDefault()">+ 添加记录</button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab ${currentTab === 'basic' ? 'active' : ''}" onclick="showProjectDetailTab('basic')">项目基本信息</div>
+          <div class="tab ${currentTab === 'record' ? 'active' : ''}" onclick="showProjectDetailTab('record')">数据记录</div>
+          <div class="tab ${currentTab === 'flow' ? 'active' : ''}" onclick="showProjectDetailTab('flow')">当前项目流程</div>
+          <div class="tab ${currentTab === 'progress' ? 'active' : ''}" onclick="showProjectDetailTab('progress')">进度</div>
+        </div>
+
+        ${tabContent}
+      `;
+    }
+
+    function renderProjectBasicInfo(project) {
+      return `
+        <div class="detail-grid">
+          <div class="detail-panel">
+            <div class="section-title">项目概览</div>
+            <div class="metric-grid">
+              <div class="metric-card">
+                <div class="metric-label">状态</div>
+                <div class="metric-value"><span class="tag ${getStatusTagClass(project.statusClass)}">${project.status}</span></div>
+                <div class="metric-note">当前项目阶段</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">记录数</div>
+                <div class="metric-value">${project.recordCount}</div>
+                <div class="metric-note">累计数据条目</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">负责人</div>
+                <div class="metric-value" style="font-size:18px">${project.owner}</div>
+                <div class="metric-note">项目主负责人</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">类型</div>
+                <div class="metric-value" style="font-size:18px">${project.type}</div>
+                <div class="metric-note">所属实验分类</div>
+              </div>
+            </div>
+            <div class="info-list">
+              <div class="info-row"><span class="label">项目名称</span><span class="value">${project.name}</span></div>
+              <div class="info-row"><span class="label">创建时间</span><span class="value">${project.createdAt}</span></div>
+              <div class="info-row"><span class="label">项目说明</span><span class="value">${project.summary}</span></div>
+              <div class="info-row"><span class="label">研究目标</span><span class="value">${project.objective}</span></div>
+            </div>
+          </div>
+
+          <div class="detail-panel">
+            <div class="section-title">最近活动</div>
+            <div class="flow-list">
+              ${project.recentActivity.map(activity => `
+                <div class="flow-item">
+                  <div class="flow-dot"></div>
+                  <div class="flow-card">
+                    <div class="flow-title">
+                      <span>${activity}</span>
+                      <span class="tag tag-default">动态</span>
+                    </div>
+                    <div class="flow-desc">该动态已同步到当前项目的时间线中。</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProjectRecordTab(project) {
+      return `
+        <div class="detail-panel">
+          <div class="subpage-toolbar">
+            <div>
+              <div class="section-title" style="margin-bottom:4px">当前项目数据记录</div>
+              <div class="hint">这里展示当前项目的最近记录，并保留继续录入的入口。</div>
+            </div>
+            <button class="btn btn-primary" onclick="showPage('data-record');event.preventDefault()">+ 新增记录</button>
+          </div>
+
+          <div style="overflow-x:auto;margin-bottom:16px">
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th>样品编号</th><th>浓度 / 条件</th><th>核心结果</th><th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${project.recordRows.length ? project.recordRows.map(row => `
+                  <tr>
+                    <td>${row[0]}</td>
+                    <td>${row[1]}</td>
+                    <td>${row[2]}</td>
+                    <td>${row[3]}</td>
+                  </tr>
+                `).join('') : `
+                  <tr>
+                    <td colspan="4" style="text-align:center;color:var(--text-secondary);padding:24px">当前项目还没有记录，点击右上角开始录入。</td>
+                  </tr>
+                `}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="detail-grid">
+            <div class="card" style="cursor:default">
+              <div class="card-title">录入说明</div>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;line-height:1.8">
+                数据记录子界面用于录入当前项目的样品编号、实验条件和结果。建议先保存草稿，再进行图片和备注补充。
+              </p>
+            </div>
+            <div class="card" style="cursor:default">
+              <div class="card-title">当前统计</div>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">累计记录：${project.recordCount} 条</p>
+              <p style="font-size:13px;color:var(--text-secondary)">最近更新：2 小时前</p>
+              <p style="font-size:13px;color:var(--text-secondary)">当前状态：${project.status}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProjectFlowTab(project) {
+      return `
+        <div class="detail-panel">
+          <div class="section-title">当前项目流程</div>
+          <div class="flow-list">
+            ${project.flowSteps.map((step, index) => `
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-card">
+                  <div class="flow-title">
+                    <span>${index + 1}. ${step[0]}</span>
+                    <span class="tag tag-default">步骤 ${index + 1}</span>
+                  </div>
+                  <div class="flow-desc">${step[1]}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProjectProgressTab(project) {
+      return `
+        <div class="detail-panel">
+          <div class="section-title">当前项目进度</div>
+          <div class="progress-list">
+            ${project.progress.map(item => `
+              <div class="progress-item">
+                <div class="progress-head">
+                  <span>${item[0]}</span>
+                  <span>${item[1]}% · ${item[2]}</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width:${item[1]}%"></div></div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="card" style="margin-top:16px;cursor:default">
+            <div class="card-title">进度判断</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;line-height:1.8">
+              系统会根据流程完成情况自动估算进度。你可以在这里查看哪些步骤已完成、哪些步骤正在进行，以及下一步需要补充什么内容。
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    // ===== Page 3: Data Record =====
+    function renderDataRecordPage() {
+      const project = getCurrentProject();
+      return `
+        <div class="page-header">
+          <div>
+            <h1>记录实验数据</h1>
+          </div>
+          <span style="font-size:13px;color:var(--success)">🟢 草稿已自动保存</span>
+        </div>
+
+        <div class="record-grid">
+          <div class="record-item">
+            <label class="required">样品编号</label>
+            <input type="text" placeholder="如：A-1">
+          </div>
+          <div class="record-item">
+            <label class="required">药物浓度 (μM)</label>
+            <input type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div class="record-item">
+            <label class="required">OD值 (570nm)</label>
+            <input type="number" step="0.001" placeholder="0.000">
+          </div>
+          <div class="record-item">
+            <label>处理时间 (h)</label>
+            <input type="number" step="0.5" placeholder="24">
+          </div>
+          <div class="record-item">
+            <label class="required">细胞存活率 (%)</label>
+            <input type="number" step="0.1" placeholder="0.0">
+          </div>
+          <div class="record-item">
+            <label>备注</label>
+            <textarea rows="2" placeholder="实验观察、异常情况等"></textarea>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <label style="font-size:13px;font-weight:500;margin-bottom:6px;display:block">实验图片</label>
+          <div class="image-upload-area" style="max-width:300px">
+            <div style="font-size:28px">📷</div>
+            <div style="margin-top:6px">点击或拖拽上传图片</div>
+            <div style="font-size:11px;color:#aaa">支持 JPG/PNG，单张≤10MB</div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary">💾 保存记录</button>
+          <button class="btn btn-default">📋 暂存草稿</button>
+          <button class="btn btn-default">取消</button>
+        </div>
+      `;
+    }
+
+    // ===== Page 4: Data History =====
+    function renderDataHistoryPage() {
+      return `
+        <div class="page-header">
+          <div>
+            <h1>数据历史</h1>
+          </div>
+          <button class="btn btn-default">📥 导出CSV</button>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>记录时间</th><th>样品编号</th><th>药物浓度(μM)</th><th>OD值</th><th>存活率(%)</th><th>记录人</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>2026-07-06 10:00</td><td>A-1</td><td>0.00</td><td>0.852</td><td>100.0</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-2</td><td>0.01</td><td>0.801</td><td>94.0</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-3</td><td>0.10</td><td>0.645</td><td>75.7</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-4</td><td>1.00</td><td>0.412</td><td>48.4</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+              <tr><td>2026-07-06 10:00</td><td>A-5</td><td>10.0</td><td>0.178</td><td>20.9</td><td>张博士</td><td><a href="#" style="color:var(--primary)">查看</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-top:12px">共 24 条记录</p>
+      `;
+    }
+
+    // ===== Page 5: Reminders =====
+    function renderRemindersPage() {
+      const project = getCurrentProject();
+      return `
+        <div class="page-header">
+          <div>
+            <h1>采集提醒设置</h1>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modal-add-reminder')">+ 添加提醒</button>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>取样检测OD值</strong>
+                  <div class="timeline-time">每天 08:00 | 提前 15分钟 | 重复: 每天</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>更换培养基</strong>
+                  <div class="timeline-time">2026-07-08 14:00 | 提前 30分钟 | 不重复</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>细胞计数</strong>
+                  <div class="timeline-time">每天 18:00 | 提前 10分钟 | 重复: 每天</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+                  <button class="btn btn-sm btn-default">编辑</button>
+                  <button class="btn btn-sm btn-danger">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" style="display:none">
+          <div class="empty-icon">⏰</div>
+          <p>还没有设置任何提醒</p>
+          <button class="btn btn-primary" onclick="openModal('modal-add-reminder')">添加第一个提醒</button>
+        </div>
+      `;
+    }
+
+    // ===== Page 6: Data Analysis =====
+    function renderAnalysisPage() {
+      const project = getCurrentProject();
+      return `
+        <div class="page-header">
+          <div>
+            <h1>Agent数据分析</h1>
+          </div>
+          <button class="btn btn-success">📄 生成报告</button>
+        </div>
+
+        <div class="analysis-controls">
+          <div class="control-group"><label>数据条目</label><select><option>细胞存活率 (%)</option><option>OD值</option></select></div>
+          <div class="control-group"><label>时间范围（起）</label><input type="date" value="2026-07-05"></div>
+          <div class="control-group"><label>时间范围（止）</label><input type="date" value="2026-07-06"></div>
+          <div class="control-group"><label>数学模型（可选）</label>
+            <select>
+              <option>不选择（Agent自动推荐）</option><option>线性回归</option><option>多项式拟合</option><option>指数模型</option><option>对数模型</option><option>Sigmoid (剂量-效应)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="align-self:flex-end">▶ 开始分析</button>
+        </div>
+
+        <div class="chart-placeholder">
+          <div>
+            <div style="font-size:40px;margin-bottom:8px">📈</div>
+            <div>选择参数后点击"开始分析"，Agent将进行模型拟合与相关性分析</div>
+            <div style="font-size:12px;color:#aaa;margin-top:4px">数据散点图 + 拟合曲线将显示在此区域</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <h3 style="font-size:16px;margin-bottom:12px">分析结果</h3>
+          <table class="result-table">
+            <thead><tr><th>指标</th><th>值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td>最优模型</td><td>Sigmoid (4参数)</td><td>IC50 = 0.89 μM</td></tr>
+              <tr><td>R²</td><td>0.987</td><td>拟合优度高</td></tr>
+              <tr><td>IC50</td><td>0.89 μM</td><td>半数抑制浓度</td></tr>
+              <tr><td>最大抑制率</td><td>79.1%</td><td>10μM浓度下</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Agent 分析摘要</div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:8px;line-height:1.8">
+            化合物A对HeLa细胞增殖具有显著的剂量依赖性抑制作用。最优拟合模型为Sigmoid四参数模型，R²=0.987表明拟合效果优良。
+            计算得IC50值为0.89 μM，属于中等活性范围。在最高测试浓度（10 μM）下，抑制率达到79.1%，未达到完全抑制，
+            建议后续实验可适当提高浓度范围。建议进行至少3次独立重复实验以验证结果稳定性。
+          </p>
+        </div>
+      `;
+    }
+
+    // ===== Page: Messages / Chat =====
+    let currentContactId = 'zhang';
+
+    const chatContacts = {
+      'zhang':  { name: '张博士', color: '#1677ff', online: true,  preview: '好的，我明天补上数据', unread: 0 },
+      'li':     { name: '李同学', color: '#52c41a', online: true,  preview: '酶液配好了，可以开始实验', unread: 2 },
+      'wang':   { name: '王老师', color: '#faad14', online: false, preview: 'SDS-PAGE 结果拍图发我', unread: 1 },
+      'group':  { name: '项目协作组', color: '#722ed1', online: true,  preview: '本周实验进度同步一下', unread: 5 }
+    };
+
+    const chatHistory = {
+      'zhang': [
+        { from: 'them', text: '细胞增殖实验的数据什么时候能补完？', time: '09:15' },
+        { from: 'me',   text: '今天下午测完最后两组就提交', time: '09:18' },
+        { from: 'them', text: '好的，我明天补上数据', time: '09:20' }
+      ],
+      'li': [
+        { from: 'them', text: '酶液配好了，可以开始实验', time: '08:40' },
+        { from: 'them', text: 'pH 梯度按之前定的设的，你看下对不对', time: '08:41' },
+        { from: 'me',   text: '收到，我确认下方案', time: '08:45' }
+      ],
+      'wang': [
+        { from: 'them', text: 'SDS-PAGE 结果拍图发我', time: '昨天' }
+      ],
+      'group': [
+        { from: 'them', text: '本周实验进度同步一下', time: '昨天' },
+        { from: 'me',   text: '细胞实验还差两组数据', time: '昨天' },
+        { from: 'them', text: '蛋白纯化本周能出结果吗', time: '昨天' }
+      ]
+    };
+
+    function renderMessagesPage() {
+      const contact = chatContacts[currentContactId];
+      const history = chatHistory[currentContactId] || [];
+
+      function renderContactList() {
+        return Object.keys(chatContacts).map(id => {
+          const c = chatContacts[id];
+          return `
+            <div class="chat-contact ${id === currentContactId ? 'active' : ''}" onclick="switchContact('${id}')">
+              <div class="contact-avatar" style="background:${c.color}">${c.name.charAt(0)}</div>
+              <div class="contact-info">
+                <div class="contact-name">${c.name}</div>
+                <div class="contact-preview">${c.preview}</div>
+              </div>
+              ${c.unread > 0 ? `<span class="contact-badge">${c.unread}</span>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderMessages() {
+        return history.map(msg => {
+          const isMe = msg.from === 'me';
+          const avatarColor = isMe ? '#001529' : contact.color;
+          const initial = isMe ? '我' : contact.name.charAt(0);
+          return `
+            <div class="chat-msg ${isMe ? 'self' : ''}">
+              <div class="msg-avatar" style="background:${avatarColor}">${initial}</div>
+              <div>
+                <div class="msg-bubble">${msg.text}</div>
+                <div class="msg-time">${msg.time}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      return `
+        <div class="page-header">
+          <div>
+            <h1>消息</h1>
+          </div>
+        </div>
+
+        <div class="chat-wrap">
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-title">联系人</div>
+            ${renderContactList()}
+          </div>
+
+          <div class="chat-main">
+            <div class="chat-header">
+              <div class="contact-avatar" style="background:${contact.color};width:36px;height:36px">${contact.name.charAt(0)}</div>
+              <div>
+                <div class="chat-header-name">${contact.name}</div>
+                <div class="chat-header-status">${contact.online ? '🟢 在线' : '⚪ 离线'}</div>
+              </div>
+            </div>
+
+            <div class="chat-body" id="chat-body">
+              ${renderMessages()}
+            </div>
+
+            <div class="chat-input-bar">
+              <input class="chat-input" id="chat-input-box" type="text" placeholder="输入消息，按回车发送..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+              <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function switchContact(id) {
+      currentContactId = id;
+      if (chatContacts[id]) chatContacts[id].unread = 0;
+      showPage('messages');
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input-box');
+      const text = (input.value || '').trim();
+      if (!text) return;
+      if (!chatHistory[currentContactId]) chatHistory[currentContactId] = [];
+      const now = new Date();
+      const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+      chatHistory[currentContactId].push({ from: 'me', text: text, time: timeStr });
+      input.value = '';
+      showPage('messages');
+      setTimeout(() => {
+        const body = document.getElementById('chat-body');
+        if (body) body.scrollTop = body.scrollHeight;
+      }, 50);
+    }
+
+    // ===== Initialize: Show projects page =====
+    showPage('projects');
+  </script>
+</body>
+</html>
