@@ -1,16 +1,19 @@
 /**
  * Topbar 顶栏
- * 全局搜索 + 当前项目切换 + 新建菜单 + 用户头像。
+ * 全局搜索 + 当前项目切换 + 新建菜单 + 用户头像 + 登出。
  */
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/appStore'
+import { useAuthStore } from '@/store/authStore'
 import { mockProjects } from '@/mocks/data'
 
 export default function Topbar() {
   const navigate = useNavigate()
-  const { currentUser, currentProjectId, setCurrentProject, searchKeyword, setSearchKeyword } =
+  const { currentProjectId, setCurrentProject, searchKeyword, setSearchKeyword } =
     useAppStore()
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const logout = useAuthStore((s) => s.logout)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -31,6 +34,11 @@ export default function Topbar() {
   const jump = (path) => {
     setMenuOpen(false)
     navigate(path)
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -87,9 +95,29 @@ export default function Topbar() {
           )}
         </div>
 
-        <div className="avatar" title={currentUser.name}>
-          {currentUser.avatarText}
-        </div>
+        {currentUser ? (
+          <>
+            <div className="avatar" title={currentUser.name}>
+              {currentUser.avatarText}
+            </div>
+            <button
+              className="ghost-btn"
+              type="button"
+              onClick={handleLogout}
+              style={{ fontSize: 13 }}
+            >
+              登出
+            </button>
+          </>
+        ) : (
+          <button
+            className="primary-btn"
+            type="button"
+            onClick={() => navigate('/login')}
+          >
+            登录
+          </button>
+        )}
       </div>
     </header>
   )

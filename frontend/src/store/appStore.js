@@ -1,14 +1,12 @@
 /**
  * 应用级 UI 状态（Zustand）
  * 仅存放跨页面共享的轻量状态。业务数据仍通过 API 层按需获取。
- * TODO: 后续可拆分为多个 store（如 authStore、projectStore）。
+ * 认证相关状态已拆分到 authStore。
  */
 import { create } from 'zustand'
-import { currentLab, currentUser } from '@/mocks/data'
+import { currentLab } from '@/mocks/data'
 
 export const useAppStore = create((set) => ({
-  /** 当前登录用户（mock） */
-  currentUser,
   /** 当前实验室名称 */
   currentLab,
   /** 顶栏「当前项目」——记录页等以此为上下文 */
