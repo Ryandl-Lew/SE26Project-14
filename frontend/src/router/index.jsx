@@ -3,6 +3,7 @@
  * 覆盖原型的主要功能入口。所有页面挂在 AppLayout 外壳下。
  *
  * 路由结构：
+ *   /login                 登录页（独立布局，无需登录）
  *   /                      工作台 Dashboard
  *   /projects              项目管理列表
  *   /projects/:projectId   项目详情（原型 current-project）
@@ -30,9 +31,14 @@ import {
   TeamPage,
   AiAssistantPage,
   NotFoundPage,
+  LoginPage,
 } from '@/pages'
 
 export const router = createBrowserRouter([
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
   {
     path: '/',
     element: <AppLayout />,

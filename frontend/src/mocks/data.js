@@ -13,6 +13,53 @@ export const currentUser = {
 
 export const currentLab = '分子生物学教学实验室'
 
+/**
+ * 本地账号数据（mock 登录用）
+ * 密码明文仅用于本地 demo，真实项目不可如此存储。
+ */
+export const localAccounts = [
+  {
+    id: 'u-001',
+    username: 'li',
+    password: '123456',
+    name: '李同学',
+    email: 'li@example.com',
+    avatarText: '李',
+  },
+  {
+    id: 'u-002',
+    username: 'wang',
+    password: '123456',
+    name: '王同学',
+    email: 'wang@example.com',
+    avatarText: '王',
+  },
+  {
+    id: 'u-003',
+    username: 'zhang',
+    password: '123456',
+    name: '张老师',
+    email: 'pi@example.com',
+    avatarText: '张',
+  },
+  {
+    id: 'u-004',
+    username: 'chen',
+    password: '123456',
+    name: '陈同学',
+    email: 'chen@example.com',
+    avatarText: '陈',
+  },
+  {
+    id: 'u-005',
+    username: 'zhao',
+    password: '123456',
+    name: '赵同学',
+    email: 'zhao@example.com',
+    avatarText: '赵',
+  },
+]
+
 /** @type {import('@/domain/models').Project[]} */
 export const mockProjects = [
   {

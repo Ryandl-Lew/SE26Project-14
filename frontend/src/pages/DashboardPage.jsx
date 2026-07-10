@@ -12,12 +12,12 @@ import {
   fetchRecords,
   fetchTodos,
 } from '@/api'
-import { useAppStore } from '@/store/appStore'
+import { useAuthStore } from '@/store/authStore'
 import './dashboard.css'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const currentUser = useAppStore((s) => s.currentUser)
+  const currentUser = useAuthStore((s) => s.currentUser)
   const [stats, setStats] = useState([])
   const [projects, setProjects] = useState([])
   const [records, setRecords] = useState([])
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       <div className="hero-strip">
         <div className="hero-copy">
           <p className="eyebrow">今日工作台</p>
-          <h1>早上好，{currentUser.name}</h1>
+          <h1>早上好，{currentUser?.name || '访客'}</h1>
           <p className="page-desc">今天是 2026-07-09。你最近正在处理：GFP 融合蛋白表达项目。</p>
           <div className="card-actions" style={{ marginTop: 18 }}>
             <button className="primary-btn" onClick={() => navigate('/projects/p-001')}>
