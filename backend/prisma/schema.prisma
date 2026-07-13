@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------- 用户 -----------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedProjects Project[]
+  memberships   ProjectMember[]
+  records       DataRecord[]
+  notifications Notification[]
+  comments      Comment[]
+  reminderLogs  ReminderLog[]
+}
+
+// ------------------------------- 项目 -----------------------------------
+
+model Project {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  status      String   @default("active")
+  ownerId     String
+  progress    Int      @default(0)
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner      User             @relation(fields: [ownerId], references: [id])
+  members    ProjectMember[]
+  dataFields DataField[]
+  records    DataRecord[]
+  reminders   Reminder[]
+  comments    Comment[]
+  activities  Activity[]
+  publicData  PublicData?
+  shareLinks  ShareLink[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String   @default("member")
+  joinedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+// --------------------------- 数据条目定义 --------------------------------
+
+model DataField {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String
+  type      String
+  unit      String?
+  required  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  groupName String?
+  createdAt DateTime @default(now())
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values  RecordValue[]
+
+  @@index([projectId])
+}
+
+// ----------------------------- 数据记录 ---------------------------------
+
+model DataRecord {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  projectId  String
+  userId     String
+  title      String
+  status     String   @default("draft")
+  recordDate DateTime @default(now())
+  location   String?
+  purpose    String?
+  conclusion String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id])
+  values      RecordValue[]
+  comments    Comment[]
+  attachments Attachment[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+model RecordValue {
+  id        String   @id @default(uuid())
+  recordId  String
+  fieldId   String
+  value     String
+  createdAt DateTime @default(now())
+
+  record DataRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  field  DataField  @relation(fields: [fieldId], references: [id])
+
+  @@unique([recordId, fieldId])
+}
+
+// ------------------------------ 附件 ------------------------------------
+
+model Attachment {
+  id        String   @id @default(uuid())
+  recordId  String
+  fileName  String
+  filePath  String
+  fileSize  Int
+  mimeType  String
+  createdAt DateTime @default(now())
+
+  record DataRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------ 提醒 ------------------------------------
+
+model Reminder {
+  id             String   @id @default(uuid())
+  projectId      String
+  title          String
+  remindAt       DateTime
+  advanceMinutes Int      @default(5)
+  repeatRule     String?
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  logs    ReminderLog[]
+
+  @@index([remindAt])
+  @@index([isEnabled])
+}
+
+model ReminderLog {
+  id          String   @id @default(uuid())
+  reminderId  String
+  userId      String
+  status      String   @default("sent")
+  triggeredAt DateTime @default(now())
+
+  reminder Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+}
+
+// ------------------------------ 通知 ------------------------------------
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  content   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+}
+
+// ------------------------------ 评论 ------------------------------------
+
+model Comment {
+  id        String   @id @default(uuid())
+  projectId String
+  recordId  String?
+  userId    String
+  content   String
+  category  String   @default("comment")
+  createdAt DateTime @default(now())
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  record  DataRecord? @relation(fields: [recordId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@index([recordId])
+}
+
+// ------------------------------ 动态日志 --------------------------------
+
+model Activity {
+  id        String   @id @default(uuid())
+  projectId String
+  text      String
+  target    String?
+  category  String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ---------------------------- 公开数据 ----------------------------------
+
+model PublicData {
+  id          String   @id @default(uuid())
+  projectId   String   @unique
+  title       String
+  description String?
+  category    String?
+  tags        String   @default("[]")
+  snapshot    String   @default("{}")
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------- 模板定义 ----------------------------------
+
+model FieldDefinition {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  category    String
+  usageCount  Int      @default(0)
+  tag         String?
+  createdAt   DateTime @default(now())
+
+  fields FieldTemplate[]
+}
+
+model FieldTemplate {
+  id         String  @id @default(uuid())
+  templateId String
+  name       String
+  type       String  @default("text")
+  required   Boolean @default(false)
+  unit       String?
+  searchable Boolean @default(true)
+  sortOrder  Int     @default(0)
+
+  template FieldDefinition @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------- 分享链接 ----------------------------------
+
+model ShareLink {
+  id        String    @id @default(uuid())
+  projectId String
+  token     String    @unique
+  expiresAt DateTime?
+  password  String?
+  createdAt DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
