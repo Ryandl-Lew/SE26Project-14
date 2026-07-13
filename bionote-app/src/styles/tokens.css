@@ -1,0 +1,60 @@
+/* ── BioNote Design Tokens — ELN / LIMS Inspired ─────────── */
+:root {
+  /* Background layers */
+  --bg:            #f2f4f6;
+  --bg-alt:        #ebeef1;
+  --panel:         #ffffff;
+  --panel-2:       #f8f9fb;
+  --panel-hover:   #f3f5f9;
+
+  /* Borders */
+  --border:        #d5dbe3;
+  --border-light:  #e4e8ee;
+  --border-focus:  #1a7a6b;
+
+  /* Brand */
+  --brand:         #0f6b58;
+  --brand-hover:   #0a5646;
+  --brand-soft:    #e6f4f0;
+  --brand-pale:    #f0f8f5;
+  --accent:        #2a6b96;
+  --accent-soft:   #e8f1f8;
+
+  /* Semantic */
+  --success:       #1e7e4c;
+  --success-soft:  #e6f6ed;
+  --warning:       #a16612;
+  --warning-soft:  #fef6e8;
+  --danger:        #c0392b;
+  --danger-soft:   #fef0ef;
+  --info:          #3d5a80;
+  --info-soft:     #eef3f8;
+  --violet:        #5d4db3;
+  --violet-soft:   #f1effa;
+  --gray:          #566572;
+  --gray-soft:     #f2f4f7;
+
+  /* Typography */
+  --ink:           #1a2128;
+  --ink-soft:      #3e4b56;
+  --muted:         #6b7885;
+  --muted-light:   #94a1af;
+
+  /* Radii */
+  --radius-sm:     4px;
+  --radius-md:     6px;
+  --radius:        8px;
+  --radius-lg:     10px;
+  --radius-full:   999px;
+
+  /* Shadows */
+  --shadow-xs:     0 1px 2px rgba(20, 30, 40, 0.04);
+  --shadow-sm:     0 1px 3px rgba(20, 30, 40, 0.06);
+  --shadow-md:     0 2px 8px rgba(20, 30, 40, 0.07);
+  --shadow-lg:     0 4px 16px rgba(20, 30, 40, 0.09);
+
+  /* Layout */
+  --sidebar-w:     248px;
+  --topbar-h:      64px;
+  --font-mono:     "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+}
