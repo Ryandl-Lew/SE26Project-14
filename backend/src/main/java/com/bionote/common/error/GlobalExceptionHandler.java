@@ -61,7 +61,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception exception) {
         log.error("Unhandled exception", exception);
-        return response(ErrorCode.INTERNAL_ERROR, "服务器内部错误", null);
+        // 开发阶段：把异常类名和消息直接返回给前端，方便联调
+        String detail = exception.getClass().getSimpleName() + ": " + exception.getMessage();
+        Throwable cause = exception.getCause();
+        if (cause != null) {
+            detail += " [cause: " + cause.getClass().getSimpleName() + ": " + cause.getMessage() + "]";
+        }
+        return response(ErrorCode.INTERNAL_ERROR, "服务器内部错误 — " + detail, null);
     }
 
     private ResponseEntity<ErrorResponse> response(

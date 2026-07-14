@@ -1,0 +1,235 @@
+/**
+ * FileManager 组件样式
+ * 遵循科学软件冷色调 + 高信息密度设计规范
+ * 复用全局 CSS 变量（--brand, --line, --muted 等）
+ */
+
+/* ------------------------------ 根容器 ------------------------------ */
+.fm-root {
+  display: grid;
+  gap: 14px;
+}
+
+/* ------------------------------ 上传区 ------------------------------ */
+.fm-upload-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.fm-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  color: #fff;
+  background: var(--brand);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.fm-upload-btn:hover {
+  filter: brightness(0.95);
+}
+
+.fm-upload-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+}
+
+.fm-upload-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ------------------------------ 上传进度条 ------------------------------ */
+.fm-progress-bar {
+  padding: 10px 14px;
+  border: 1px solid var(--brand-soft);
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+}
+
+.fm-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.fm-progress-name {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-progress-pct {
+  color: var(--brand);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fm-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(23, 107, 91, 0.15);
+  overflow: hidden;
+}
+
+.fm-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: width 0.25s ease;
+}
+
+/* ------------------------------ 文件列表 ------------------------------ */
+.fm-file-list {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.fm-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 90px 130px 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  transition: background 0.12s;
+}
+
+.fm-row:last-child {
+  border-bottom: 0;
+}
+
+.fm-row:hover {
+  background: var(--gray-soft);
+}
+
+/* 表头行 */
+.fm-row.fm-header {
+  background: #f8faf9;
+  border-bottom: 1px solid var(--line);
+}
+
+.fm-header-cell {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ------------------------------ 图标 ------------------------------ */
+.fm-file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+/* 按类型着色 */
+.fm-icon-pdf   { background: #c83b3b; }
+.fm-icon-image { background: var(--violet); }
+.fm-icon-excel,
+.fm-icon-csv   { background: var(--green); }
+.fm-icon-zip,
+.fm-icon-generic { background: var(--blue); }
+
+/* ------------------------------ 文件信息 ------------------------------ */
+.fm-file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-file-size {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.fm-file-time {
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ------------------------------ 操作按钮 ------------------------------ */
+.fm-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.fm-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 15px;
+}
+
+.fm-icon-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.fm-icon-btn.fm-delete:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+/* ------------------------------ 空态 ------------------------------ */
+.fm-empty {
+  padding: 36px 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ------------------------------ 响应式 ------------------------------ */
+@media (max-width: 700px) {
+  .fm-row {
+    grid-template-columns: 28px minmax(0, 1fr) 70px;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .fm-file-time {
+    display: none;
+  }
+
+  .fm-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

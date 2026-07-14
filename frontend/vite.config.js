@@ -12,7 +12,17 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // TODO: 后端就绪后配置代理，将 /api 转发到 Express 服务
-    // proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },
+    // 将 /api 请求代理转发到 Spring Boot 后端
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log(`[Vite→Backend] ${req.method} ${req.url} → ${proxyReq.method} ${proxyReq.path}`)
+          })
+        },
+      },
+    },
   },
 })

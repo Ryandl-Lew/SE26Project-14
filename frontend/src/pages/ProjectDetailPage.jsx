@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageHeader, StatCard, StatusBadge, Surface, Badge } from '@/components/ui'
+import FileManager from '@/components/file/FileManager'
 import { PROJECT_ROLE_LABELS, PROJECT_ROLE_TONES } from '@/domain'
 import {
   fetchProject,
@@ -139,18 +140,12 @@ export default function ProjectDetailPage() {
         </Surface>
 
         <aside className="surface">
-          <div className="surface-head">
-            <h2>项目附件</h2>
-            <button className="secondary-btn">上传附件</button>
-          </div>
-          <div className="side-list">
-            {attachments.map((a) => (
-              <div className="side-chip" key={a.id}>
-                <span>{a.name}</span>
-                <Badge tone="blue">{a.kind}</Badge>
-              </div>
-            ))}
-          </div>
+          <h2>项目附件</h2>
+          <FileManager
+            entityId={projectId}
+            entityType="project"
+            initialFiles={attachments}
+          />
           <h2 style={{ marginTop: 18 }}>最近动态</h2>
           <div className="stack">
             {activities.map((ac) => (

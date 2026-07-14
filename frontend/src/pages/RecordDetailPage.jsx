@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { StatusBadge, Surface, Badge, GelPreview } from '@/components/ui'
+import FileManager from '@/components/file/FileManager'
 import { fetchRecord, fetchRecordComments } from '@/api'
 import './project-detail.css'
 
@@ -118,6 +119,12 @@ export default function RecordDetailPage() {
           <div style={{ marginTop: 16 }}>
             <GelPreview caption="结果图预览" />
           </div>
+          <h2 style={{ marginTop: 18 }}>文件管理</h2>
+          <FileManager
+            entityId={recordId}
+            entityType="record"
+            initialFiles={[]}
+          />
         </aside>
       </div>
     </section>
