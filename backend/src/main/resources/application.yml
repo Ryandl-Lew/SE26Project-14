@@ -50,7 +50,14 @@ bionote:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   storage:
-    root: ${FILE_STORAGE_ROOT:./storage}
+    upload-dir: ${FILE_STORAGE_ROOT:./storage}
+    allowed-extensions:
+      - jpg
+      - png
+      - pdf
+      - csv
+      - xls
+      - xlsx
   seed:
     enabled: ${SEED_ENABLED:true}
 

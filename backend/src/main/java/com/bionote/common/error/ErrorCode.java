@@ -12,7 +12,9 @@ public enum ErrorCode {
     RECORD_VERSION_CONFLICT(HttpStatus.CONFLICT),
     ILLEGAL_STATE_TRANSITION(HttpStatus.CONFLICT),
     FILE_TYPE_NOT_ALLOWED(HttpStatus.BAD_REQUEST),
+    INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE),
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final HttpStatus status;
