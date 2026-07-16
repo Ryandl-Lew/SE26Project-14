@@ -123,4 +123,9 @@ public class Attachment {
     public void markDeleted() {
         this.deleted = true;
     }
+
+    /** 恢复已软删除的记录。 */
+    public void markRestored() {
+        this.deleted = false;
+    }
 }

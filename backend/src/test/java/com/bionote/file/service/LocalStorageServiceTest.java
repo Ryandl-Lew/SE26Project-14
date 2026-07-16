@@ -182,14 +182,14 @@ class LocalStorageServiceTest {
     }
 
     @Test
-    @DisplayName("loadAsResource() 加载不存在的文件，抛出 FILE_NOT_FOUND")
+    @DisplayName("loadAsResource() 加载不存在的文件，抛出 PHYSICAL_FILE_MISSING")
     void testLoadAsResourceFileNotFound() {
         String nonExistentKey = "00000000-0000-0000-0000-000000000000.pdf";
 
         assertThatThrownBy(() -> service.loadAsResource(nonExistentKey))
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).errorCode())
-                .isEqualTo(ErrorCode.FILE_NOT_FOUND);
+                .isEqualTo(ErrorCode.PHYSICAL_FILE_MISSING);
     }
 
     // ──────────────────────────────────────────────

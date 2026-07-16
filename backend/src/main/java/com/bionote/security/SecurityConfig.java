@@ -45,6 +45,8 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin()))
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(errors -> errors
@@ -65,7 +67,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/projects/*/files",
                                 "/api/v1/records/*/attachments",
                                 "/api/v1/files/**",
-                                "/api/v1/search")
+                                "/api/v1/search",
+                                "/api/v1/export/**")
                         .permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

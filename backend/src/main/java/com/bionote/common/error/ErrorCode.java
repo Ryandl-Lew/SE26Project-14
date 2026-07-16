@@ -15,6 +15,7 @@ public enum ErrorCode {
     INVALID_FILE_TYPE(HttpStatus.BAD_REQUEST),
     FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE),
     FILE_NOT_FOUND(HttpStatus.NOT_FOUND),
+    PHYSICAL_FILE_MISSING(HttpStatus.GONE),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final HttpStatus status;

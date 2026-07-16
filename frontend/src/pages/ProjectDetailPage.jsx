@@ -2,7 +2,7 @@
  * 项目详情 ProjectDetail（原型 current-project）
  * 概览 + 统计 + 附件 / 动态 + 时间线 + 成员。
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PageHeader, StatCard, StatusBadge, Surface, Badge } from '@/components/ui'
 import FileManager from '@/components/file/FileManager'
@@ -10,11 +10,13 @@ import { PROJECT_ROLE_LABELS, PROJECT_ROLE_TONES } from '@/domain'
 import {
   fetchProject,
   fetchProjectActivities,
-  fetchProjectAttachments,
   fetchProjectMembers,
   fetchProjectTimeline,
   fetchRecords,
+  exportProjectToExcel,
 } from '@/api'
+import { listProjectFiles } from '@/api/files'
+import { toast } from '@/utils/toast'
 import './project-detail.css'
 
 export default function ProjectDetailPage() {
@@ -26,12 +28,29 @@ export default function ProjectDetailPage() {
   const [activities, setActivities] = useState([])
   const [timeline, setTimeline] = useState([])
   const [members, setMembers] = useState([])
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportExcel = useCallback(async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      await exportProjectToExcel(projectId)
+      toast('项目实验记录 Excel 导出成功')
+    } catch (err) {
+      console.error('Excel 导出失败:', err)
+      toast(err?.response?.data?.message
+        || err?.message
+        || 'Excel 导出失败，请稍后重试', { type: 'error' })
+    } finally {
+      setExporting(false)
+    }
+  }, [projectId, exporting])
 
   useEffect(() => {
     if (!projectId) return
     fetchProject(projectId).then((p) => setProject(p ?? null))
     fetchRecords(projectId).then((list) => setRecords(list.slice(0, 3)))
-    fetchProjectAttachments(projectId).then(setAttachments)
+    listProjectFiles(projectId).then(setAttachments)
     fetchProjectActivities(projectId).then(setActivities)
     fetchProjectTimeline(projectId).then(setTimeline)
     fetchProjectMembers(projectId).then(setMembers)
@@ -83,6 +102,13 @@ export default function ProjectDetailPage() {
           </button>
           <button className="primary-btn" onClick={() => navigate('/records/new')}>
             新建实验
+          </button>
+          <button
+            className="secondary-btn"
+            onClick={handleExportExcel}
+            disabled={exporting}
+          >
+            {exporting ? '⏳ 导出中…' : '📥 导出 Excel'}
           </button>
         </div>
       </div>
@@ -144,6 +170,7 @@ export default function ProjectDetailPage() {
           <FileManager
             entityId={projectId}
             entityType="project"
+            compact
             initialFiles={attachments}
           />
           <h2 style={{ marginTop: 18 }}>最近动态</h2>

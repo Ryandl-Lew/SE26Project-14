@@ -166,9 +166,33 @@ export default function SearchPage() {
   }
 
   /** 点击列表项跳转 */
-  const handleItemClick = (targetUrl) => {
-    if (targetUrl) {
-      navigate(targetUrl)
+  const resolveUrl = (hit) => {
+    switch (hit.entityType) {
+      case 'PROJECT':
+        return `/projects/${hit.entityId}`
+      case 'RECORD':
+        return `/records/${hit.entityId}`
+      case 'TEMPLATE':
+        return '/templates'
+      case 'FILE': {
+        const match = hit.targetUrl?.match(
+          /\/projects\/([^/]+)(?:\/records\/([^/]+))?/,
+        )
+        if (match) {
+          if (match[2]) return `/records/${match[2]}`
+          return `/projects/${match[1]}`
+        }
+        return hit.targetUrl || null
+      }
+      default:
+        return hit.targetUrl || null
+    }
+  }
+
+  const handleItemClick = (hit) => {
+    const url = resolveUrl(hit)
+    if (url) {
+      navigate(url)
     }
   }
 
@@ -314,11 +338,11 @@ export default function SearchPage() {
             <div
               key={`${hit.entityType}-${hit.entityId}-${idx}`}
               className="search-hit-item"
-              onClick={() => handleItemClick(hit.targetUrl)}
+              onClick={() => handleItemClick(hit)}
               role="link"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleItemClick(hit.targetUrl)
+                if (e.key === 'Enter') handleItemClick(hit)
               }}
             >
               <div className="search-hit-header">

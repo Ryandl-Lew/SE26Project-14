@@ -1,5 +1,5 @@
 /**
- * 文件上传 / 下载 / 删除 API
+ * 文件上传 / 下载 / 删除 / 预览 / 恢复 API
  *
  * 后端文件 API 已就绪，本模块使用 Axios 实例直接请求真实后端。
  * 其余业务模块（projects / records 等）暂保持 mock 模式，
@@ -146,4 +146,52 @@ export async function downloadFile(attachmentId) {
  */
 export function deleteFile(attachmentId) {
   return fileClient.delete(`/files/${attachmentId}`)
+}
+
+/**
+ * 恢复已软删除的文件。
+ * PUT /api/v1/files/{attachmentId}/restore
+ * @param {string} attachmentId
+ * @returns {Promise<any>}
+ */
+export function restoreFile(attachmentId) {
+  return fileClient.put(`/files/${attachmentId}/restore`)
+}
+
+/**
+ * 查询项目文件列表。
+ * GET /api/v1/projects/{projectId}/files
+ * @param {string}  projectId
+ * @param {boolean} [includeDeleted=false]  是否包含已软删除的文件
+ * @returns {Promise<Array>}
+ */
+export async function listProjectFiles(projectId, includeDeleted = false) {
+  const params = includeDeleted ? { includeDeleted: true } : {}
+  const response = await fileClient.get(`/projects/${projectId}/files`, { params })
+  return response.data?.data ?? []
+}
+
+/**
+ * 查询实验记录附件列表。
+ * GET /api/v1/records/{recordId}/attachments
+ * @param {string}  recordId
+ * @param {boolean} [includeDeleted=false]  是否包含已软删除的文件
+ * @returns {Promise<Array>}
+ */
+export async function listRecordAttachments(recordId, includeDeleted = false) {
+  const params = includeDeleted ? { includeDeleted: true } : {}
+  const response = await fileClient.get(`/records/${recordId}/attachments`, { params })
+  return response.data?.data ?? []
+}
+
+/**
+ * 生成文件预览 URL。
+ * 不发起 HTTP 请求，直接返回后端预览端点地址，
+ * 可直接用于 <img src> 或 <iframe src>。
+ * GET /api/v1/files/{attachmentId}/preview
+ * @param {string} attachmentId
+ * @returns {string}
+ */
+export function previewFileUrl(attachmentId) {
+  return `/api/v1/files/${attachmentId}/preview`
 }
