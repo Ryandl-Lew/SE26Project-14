@@ -3,7 +3,7 @@
 ## Paths and authentication
 
 - All business endpoints use the `/api/v1` prefix.
-- Public endpoints are limited to login, health checks and OpenAPI resources.
+- Public endpoints are limited to login, registration, health checks and OpenAPI resources.
 - Protected endpoints require `Authorization: Bearer <accessToken>`.
 - Every response includes an `X-Trace-Id` header. Send this ID when reporting a backend error.
 
@@ -62,6 +62,6 @@ Use `BusinessException` with an `ErrorCode` for expected failures. Do not throw 
 | 204 | Archive/delete with no response body |
 | 400 | Malformed or invalid request |
 | 401 | Missing, invalid or expired login |
-| 403 | Authenticated but insufficient project permission |
+| 403 | Authenticated but insufficient project or laboratory permission |
 | 404 | Resource not found in the user's accessible scope |
 | 409 | Version conflict or illegal state transition |

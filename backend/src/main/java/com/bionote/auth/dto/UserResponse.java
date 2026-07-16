@@ -1,13 +1,15 @@
 package com.bionote.auth.dto;
 
 import com.bionote.user.entity.User;
+import com.bionote.user.entity.SystemRole;
 
 public record UserResponse(
         String id,
         String username,
         String name,
         String email,
-        String avatarText
+        String avatarText,
+        SystemRole systemRole
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
@@ -15,7 +17,8 @@ public record UserResponse(
                 user.getUsername(),
                 user.getName(),
                 user.getEmail(),
-                user.getAvatarText()
+                user.getAvatarText(),
+                user.getSystemRole()
         );
     }
 }
