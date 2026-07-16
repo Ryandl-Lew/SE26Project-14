@@ -100,21 +100,27 @@ export const TEMPLATE_FIELD_TYPE_LABELS = {
 
 /* ------------------------------ 搜索中心 ------------------------------ */
 
-/** @typedef {'project'|'record'|'template'|'member'|'attachment'} SearchEntityType */
+/** @typedef {'PROJECT'|'RECORD'|'FILE'|'TEMPLATE'} SearchEntityType */
 export const SEARCH_ENTITY_LABELS = {
-  project: '项目',
-  record: '实验记录',
-  template: '模板',
-  member: '成员',
-  attachment: '附件',
+  PROJECT: '项目',
+  RECORD: '实验记录',
+  TEMPLATE: '模板',
+  FILE: '文件',
 }
 
 export const SEARCH_ENTITY_TONES = {
-  project: 'violet',
-  record: 'amber',
-  template: 'green',
-  member: 'blue',
-  attachment: 'blue',
+  PROJECT: 'violet',
+  RECORD: 'green',
+  TEMPLATE: 'amber',
+  FILE: 'blue',
+}
+
+/** 搜索实体类型对应的图标（用于列表项前缀） */
+export const SEARCH_ENTITY_ICONS = {
+  PROJECT: '📁',
+  RECORD: '🧪',
+  TEMPLATE: '📋',
+  FILE: '📎',
 }
 
 /* ------------------------------ AI 助手 ------------------------------ */

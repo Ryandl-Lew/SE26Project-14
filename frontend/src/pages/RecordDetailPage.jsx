@@ -123,6 +123,7 @@ export default function RecordDetailPage() {
           <FileManager
             entityId={recordId}
             entityType="record"
+            projectId={record.projectId}
             initialFiles={[]}
           />
         </aside>

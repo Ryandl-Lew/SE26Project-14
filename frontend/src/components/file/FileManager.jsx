@@ -6,6 +6,7 @@
  * Props:
  *  - entityId      {string}  项目 ID 或记录 ID
  *  - entityType    {"project"|"record"}  实体类型
+ *  - projectId     {string}  [entityType="record" 时必填] 所属项目 ID，用于后端权限校验
  *  - initialFiles  {Array}   已有的文件列表，每项形状见下
  *      { id: string, name: string, size?: number, createdAt?: string }
  *  - onFilesChange {(files: Array) => void} [可选]  列表变更回调
@@ -74,7 +75,7 @@ function formatTime(iso) {
  * @param {Array} props.initialFiles
  * @param {(files: Array) => void} [props.onFilesChange]
  */
-export default function FileManager({ entityId, entityType, initialFiles = [], onFilesChange }) {
+export default function FileManager({ entityId, entityType, projectId, initialFiles = [], onFilesChange }) {
   const fileInputRef = useRef(null)
   const [files, setFiles] = useState(initialFiles)
   const [uploading, setUploading] = useState(null) // { name, progress: 0-100 }
@@ -114,7 +115,7 @@ export default function FileManager({ entityId, entityType, initialFiles = [], o
     const uploadFn =
       entityType === 'project'
         ? uploadProjectFile(entityId, file, (pct) => setUploading({ name: file.name, progress: pct }))
-        : uploadRecordAttachment(entityId, file, (pct) => setUploading({ name: file.name, progress: pct }))
+        : uploadRecordAttachment(entityId, projectId, file, (pct) => setUploading({ name: file.name, progress: pct }))
 
     uploadFn
       .then((res) => {

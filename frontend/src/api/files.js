@@ -89,14 +89,16 @@ export function uploadProjectFile(projectId, file, onProgress) {
 
 /**
  * 上传实验记录附件
- * @param {string} recordId
- * @param {File}   file
+ * @param {string} recordId   实验记录 ID（路径参数）
+ * @param {string} projectId  所属项目 ID（必填 query 参数，用于后端权限校验）
+ * @param {File}   file       要上传的文件
  * @param {(pct: number) => void} [onProgress]
  * @returns {Promise<any>}
  */
-export function uploadRecordAttachment(recordId, file, onProgress) {
+export function uploadRecordAttachment(recordId, projectId, file, onProgress) {
   const form = new FormData()
   form.append('file', file)
+  form.append('projectId', projectId)
 
   return fileClient.request({
     method: 'POST',

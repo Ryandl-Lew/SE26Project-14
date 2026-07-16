@@ -60,11 +60,12 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        // TODO: 开发阶段临时放行文件 API，认证模块就绪后移除
+                        // TODO: 开发阶段临时放行以下 API，认证模块就绪后移除
                         // Spring 6 PathPattern: ** 只能出现在末尾
                         .requestMatchers("/api/v1/projects/*/files",
                                 "/api/v1/records/*/attachments",
-                                "/api/v1/files/**")
+                                "/api/v1/files/**",
+                                "/api/v1/search")
                         .permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

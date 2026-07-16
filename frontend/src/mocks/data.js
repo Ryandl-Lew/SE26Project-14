@@ -358,10 +358,10 @@ export const mockComments = [
 
 /** @type {import('@/domain/models').SearchHit[]} */
 export const mockSearchHits = [
-  { id: 'sh-1', entityType: 'record', title: 'PCR 扩增 GFP 片段', snippet: '匹配：标题、标签、实验目的 · 最近修改 2026-07-07 16:00' },
-  { id: 'sh-2', entityType: 'project', title: 'GFP 融合蛋白表达项目', snippet: '项目编号 PRJ-2026-001 · 负责人 李同学 · 实验记录 12 条 · 最近更新 2026-07-07' },
-  { id: 'sh-3', entityType: 'template', title: 'PCR 实验模板', snippet: '实验类型 PCR · 分类 分子生物学 · 使用 128 次 · 操作：预览 / 使用' },
-  { id: 'sh-4', entityType: 'attachment', title: 'GFP_gel_0707.png', snippet: '所属位置：实验附件 / PCR 扩增 GFP 片段 · 操作：预览 / 下载 / 定位' },
+  { id: 'sh-1', entityType: 'RECORD', title: 'PCR 扩增 GFP 片段', snippet: '匹配：标题、标签、实验目的 · 最近修改 2026-07-07 16:00' },
+  { id: 'sh-2', entityType: 'PROJECT', title: 'GFP 融合蛋白表达项目', snippet: '项目编号 PRJ-2026-001 · 负责人 李同学 · 实验记录 12 条 · 最近更新 2026-07-07' },
+  { id: 'sh-3', entityType: 'TEMPLATE', title: 'PCR 实验模板', snippet: '实验类型 PCR · 分类 分子生物学 · 使用 128 次 · 操作：预览 / 使用' },
+  { id: 'sh-4', entityType: 'FILE', title: 'GFP_gel_0707.png', snippet: '所属位置：实验附件 / PCR 扩增 GFP 片段 · 操作：预览 / 下载 / 定位' },
 ]
 
 /** @type {import('@/domain/models').AiAssistResult} */

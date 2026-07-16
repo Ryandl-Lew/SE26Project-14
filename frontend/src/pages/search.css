@@ -1,19 +1,397 @@
-/* 搜索中心布局（抽取自原型 .search-layout / .result-tabs） */
-.search-layout {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 18px;
+/**
+ * 搜索中心 SearchPage 专属样式
+ *
+ * 设计方向：科学冷色调 + 高信息密度。
+ * - 搜索栏突出，品牌色聚焦环
+ * - 列表项紧凑内敛，悬停微动效
+ * - <em> 高亮关键词使用品牌色荧光背景
+ * - Load More 自动触发（IntersectionObserver 哨兵元素）
+ */
+
+/* ──────────────────────────────────────────────
+   搜索栏面板
+   ────────────────────────────────────────────── */
+.search-bar-panel {
+  padding: 20px 24px;
+  border-color: var(--brand);
+  border-width: 1.5px;
+  background:
+    linear-gradient(135deg, rgba(23, 107, 91, 0.04), rgba(34, 111, 154, 0.03)),
+    var(--paper);
 }
 
-.result-tabs {
+.search-bar-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 12px;
 }
 
-@media (max-width: 860px) {
-  .search-layout {
-    grid-template-columns: 1fr;
+.search-input-wrap {
+  position: relative;
+  flex: 1 1 360px;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 42px 0 44px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--paper);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(23, 107, 91, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.search-clear:hover {
+  background: var(--muted);
+  color: #fff;
+}
+
+.search-bar-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.project-filter-select {
+  height: 42px;
+  padding: 0 36px 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2368727d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 18px;
+  transition: border-color 0.2s;
+  min-width: 180px;
+}
+
+.project-filter-select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(23, 107, 91, 0.1);
+}
+
+.search-btn {
+  height: 42px;
+  padding: 0 22px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+/* ──────────────────────────────────────────────
+   状态栏
+   ────────────────────────────────────────────── */
+.search-status {
+  margin: 14px 0 6px;
+  padding: 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.search-status strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ──────────────────────────────────────────────
+   错误提示
+   ────────────────────────────────────────────── */
+.search-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  padding: 14px 18px;
+  border: 1px solid var(--red-soft);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 14px;
+}
+
+.search-error-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────
+   首次使用占位提示
+   ────────────────────────────────────────────── */
+.search-placeholder {
+  margin-top: 28px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.search-placeholder-icon {
+  margin-bottom: 16px;
+  color: var(--line);
+}
+
+.search-placeholder-svg {
+  opacity: 0.45;
+}
+
+.search-placeholder-title {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ──────────────────────────────────────────────
+   加载骨架屏
+   ────────────────────────────────────────────── */
+.search-loading-skeleton {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-item {
+  padding: 16px 18px;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--soft) 25%,
+    var(--line) 50%,
+    var(--soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 55%;
+  margin-bottom: 10px;
+}
+
+.skeleton-text {
+  width: 85%;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ──────────────────────────────────────────────
+   搜索结果列表
+   ────────────────────────────────────────────── */
+.search-results {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+/* ── 搜索结果卡片 ── */
+.search-hit-item {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--card-shadow);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.search-hit-item:hover {
+  border-color: var(--brand-2);
+  box-shadow: 0 4px 16px rgba(34, 111, 154, 0.1);
+  transform: translateY(-1px);
+}
+
+.search-hit-item:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ── 卡片头部：图标 + 标题 + 类型 Badge ── */
+.search-hit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-hit-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.search-hit-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 摘要片段（含 <em> 高亮） ── */
+.search-hit-snippet {
+  padding-left: 30px; /* 与标题对齐 */
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* 关键词高亮：后端使用 <em> 标签包裹 */
+.search-hit-snippet em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--brand);
+  background: rgba(23, 107, 91, 0.12);
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+/* ── 卡片底部：路径 + 时间 ── */
+.search-hit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-left: 30px;
+  font-size: 12px;
+}
+
+/* ──────────────────────────────────────────────
+   Load More
+   ────────────────────────────────────────────── */
+.search-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0 8px;
+}
+
+.search-load-more-wrap .secondary-btn {
+  min-width: 220px;
+  height: 42px;
+  font-size: 14px;
+}
+
+/* ── 追加加载指示器 ── */
+.search-loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 0;
+  font-size: 14px;
+}
+
+.search-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ──────────────────────────────────────────────
+   响应式
+   ────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .search-bar-panel {
+    padding: 14px 16px;
+  }
+
+  .search-bar-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input-wrap {
+    flex: auto;
+  }
+
+  .search-bar-filters {
+    flex-wrap: wrap;
+  }
+
+  .project-filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .search-hit-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .search-hit-snippet,
+  .search-hit-footer {
+    padding-left: 0;
   }
 }
