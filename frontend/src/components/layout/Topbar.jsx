@@ -1,21 +1,30 @@
 /**
  * Topbar 顶栏
- * 全局搜索 + 当前项目切换 + 新建菜单 + 用户头像 + 登出。
+ * 全局搜索 + 当前项目切换（仅在需要项目上下文的页面显示） + 新建菜单 + 用户头像 + 登出。
  */
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store/appStore'
 import { useAuthStore } from '@/store/authStore'
 import { mockProjects } from '@/mocks/data'
 
+/** 需要展示“当前项目”选择器的页面路径前缀 */
+const PROJECT_CONTEXT_PATHS = ['/records', '/templates', '/team']
+
 export default function Topbar() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentProjectId, setCurrentProject, searchKeyword, setSearchKeyword } =
     useAppStore()
   const currentUser = useAuthStore((s) => s.currentUser)
   const logout = useAuthStore((s) => s.logout)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+
+  // 仅在工作台之外的特定页面显示项目切换器
+  const showProjectSwitcher = useMemo(() => {
+    return PROJECT_CONTEXT_PATHS.some((prefix) => location.pathname.startsWith(prefix))
+  }, [location.pathname])
 
   // 点击外部关闭新建菜单
   useEffect(() => {
@@ -56,18 +65,20 @@ export default function Topbar() {
       </div>
 
       <div className="top-actions">
-        <select
-          className="lab-switcher"
-          aria-label="当前项目"
-          value={currentProjectId}
-          onChange={(e) => setCurrentProject(e.target.value)}
-        >
-          {mockProjects.map((p) => (
-            <option key={p.id} value={p.id}>
-              当前项目：{p.name}
-            </option>
-          ))}
-        </select>
+        {showProjectSwitcher && (
+          <select
+            className="lab-switcher"
+            aria-label="当前项目"
+            value={currentProjectId}
+            onChange={(e) => setCurrentProject(e.target.value)}
+          >
+            {mockProjects.map((p) => (
+              <option key={p.id} value={p.id}>
+                当前项目：{p.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="create-menu-wrap" ref={menuRef}>
           <button

@@ -1,36 +1,182 @@
-/* Dashboard 专属布局（抽取自原型 .hero-strip / .work-grid） */
-.hero-strip {
+/* Dashboard 专属样式（重构版） */
+
+/* ---------- 顶部欢迎区 ---------- */
+.dashboard-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  gap: 18px;
-  margin-bottom: 18px;
-  padding: 22px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
+  gap: 22px;
+  margin-bottom: 22px;
+  padding: 24px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(23, 107, 91, 0.1), rgba(34, 111, 154, 0.08)),
+    linear-gradient(135deg, rgba(23, 107, 91, 0.08), rgba(34, 111, 154, 0.06)),
     var(--paper);
-  box-shadow: var(--shadow);
+  box-shadow: var(--card-shadow);
 }
 
-.hero-copy h1 {
+.hero-main h1 {
   max-width: 680px;
+  margin-bottom: 8px;
   font-size: 30px;
 }
 
-.lab-visual {
-  display: grid;
-  align-content: stretch;
+.focus-project {
+  margin-top: 8px;
 }
 
-.work-grid {
+.focus-link {
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+/* ---------- 快捷操作 ---------- */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.quick-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.08s ease, box-shadow 0.12s ease;
+}
+
+.quick-action:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--card-shadow);
+}
+
+.quick-action.primary {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+
+.quick-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* ---------- 右侧 mini 汇总 ---------- */
+.hero-summary {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(310px, 0.55fr);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-content: center;
+}
+
+.summary-card {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 16px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ---------- 统计卡 ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+/* ---------- 主体两栏布局 ---------- */
+.dashboard-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.5fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard-main {
+  display: grid;
   gap: 18px;
 }
 
-/* 通用列表项（待办 / 提醒 / 动态） */
-.list-item {
+.dashboard-side {
+  display: grid;
+  gap: 18px;
+}
+
+/* ---------- 表格增强 ---------- */
+.dashboard-table .cell-title {
+  font-weight: 600;
+}
+
+.dashboard-table .cell-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.row-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.progress-bar {
+  width: 80px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+}
+
+.progress-text {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.empty-cell {
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ---------- 侧边栏列表 ---------- */
+.side-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.todo-item,
+.notice-item,
+.template-mini {
   display: grid;
   gap: 6px;
   padding: 12px;
@@ -39,7 +185,8 @@
   background: #fff;
 }
 
-.list-item-title {
+.todo-title,
+.notice-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,9 +194,72 @@
   font-weight: 700;
 }
 
+.todo-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+}
+
+.todo-title {
+  gap: 8px;
+}
+
+.todo-meta {
+  display: flex;
+  align-items: center;
+}
+
+.empty-tip {
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--gray-soft);
+  border-radius: var(--radius);
+}
+
+/* ---------- 响应式 ---------- */
 @media (max-width: 1180px) {
-  .hero-strip,
-  .work-grid {
+  .dashboard-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dashboard-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quick-action {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
     grid-template-columns: 1fr;
   }
 }
