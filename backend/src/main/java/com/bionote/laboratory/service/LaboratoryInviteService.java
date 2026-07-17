@@ -83,8 +83,7 @@ public class LaboratoryInviteService {
                 laboratoryId,
                 actorId,
                 LaboratoryRole.LAB_ADMIN,
-                LaboratoryRole.MENTOR,
-                LaboratoryRole.REVIEWER
+                LaboratoryRole.MENTOR
         );
         return PageResponse.from(
                 inviteRepository.findAllByLaboratory_IdOrderByCreatedAtDesc(

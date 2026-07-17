@@ -10,6 +10,8 @@ import com.bionote.laboratory.entity.LaboratoryMember;
 import com.bionote.laboratory.entity.LaboratoryMemberStatus;
 import com.bionote.laboratory.entity.LaboratoryRole;
 import com.bionote.laboratory.repository.LaboratoryMemberRepository;
+import com.bionote.user.entity.UserStatus;
+import com.bionote.user.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +22,16 @@ import java.time.Instant;
 public class LaboratoryMemberService {
     private final LaboratoryMemberRepository memberRepository;
     private final LaboratoryAccessService accessService;
+    private final UserRepository userRepository;
 
     public LaboratoryMemberService(
             LaboratoryMemberRepository memberRepository,
-            LaboratoryAccessService accessService
+            LaboratoryAccessService accessService,
+            UserRepository userRepository
     ) {
         this.memberRepository = memberRepository;
         this.accessService = accessService;
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +59,11 @@ public class LaboratoryMemberService {
         accessService.requireAnyRole(laboratoryId, actorId, LaboratoryRole.LAB_ADMIN);
         LaboratoryMember member = requireMember(laboratoryId, userId);
         validateVersion(member, request.version());
+        if (member.getMemberStatus() != LaboratoryMemberStatus.ACTIVE
+                && request.memberStatus() == LaboratoryMemberStatus.ACTIVE) {
+            lockActiveUser(userId);
+            requireNoActiveMembership(userId);
+        }
         Laboratory laboratory = member.getLaboratory();
         preventLeaderMutation(laboratory, member, request.role(), request.memberStatus());
         preventFinalAdminRemoval(laboratoryId, member, request.role(), request.memberStatus());
@@ -90,6 +100,23 @@ public class LaboratoryMemberService {
         if (member.getVersion() != version) {
             throw new BusinessException(
                     ErrorCode.LAB_VERSION_CONFLICT, "成员信息已被其他人修改，请刷新后重试");
+        }
+    }
+
+    private void lockActiveUser(String userId) {
+        userRepository.findByIdForUpdate(userId)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND, "实验室成员不存在或已停用"));
+    }
+
+    private void requireNoActiveMembership(String userId) {
+        if (memberRepository.existsByUser_IdAndMemberStatus(
+                userId, LaboratoryMemberStatus.ACTIVE)) {
+            throw new BusinessException(
+                    ErrorCode.LAB_ALREADY_MEMBER,
+                    "用户已加入一个实验室，不能在其他实验室中重新激活"
+            );
         }
     }
 

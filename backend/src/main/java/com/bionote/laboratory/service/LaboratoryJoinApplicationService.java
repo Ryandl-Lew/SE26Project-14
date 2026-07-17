@@ -109,8 +109,7 @@ public class LaboratoryJoinApplicationService {
                 laboratoryId,
                 reviewerId,
                 LaboratoryRole.LAB_ADMIN,
-                LaboratoryRole.MENTOR,
-                LaboratoryRole.REVIEWER
+                LaboratoryRole.MENTOR
         );
         return PageResponse.from(
                 applicationRepository.findAllByLaboratory_IdAndStatusOrderByCreatedAtAsc(
@@ -130,8 +129,7 @@ public class LaboratoryJoinApplicationService {
                 laboratoryId,
                 reviewerId,
                 LaboratoryRole.LAB_ADMIN,
-                LaboratoryRole.MENTOR,
-                LaboratoryRole.REVIEWER
+                LaboratoryRole.MENTOR
         );
         LaboratoryJoinApplication application = applicationRepository
                 .findByIdAndLaboratoryIdForUpdate(applicationId, laboratoryId)
@@ -167,7 +165,7 @@ public class LaboratoryJoinApplicationService {
             String message,
             JoinApplicationOrigin origin
     ) {
-        User applicant = requireActiveUser(userId);
+        User applicant = lockActiveUser(userId);
         String codeHash = inviteCodeHasher.hash(inviteCode.trim());
         LaboratoryInvite invite = inviteRepository.findByCodeHashForUpdate(codeHash)
                 .orElseThrow(() -> new BusinessException(
@@ -179,10 +177,12 @@ public class LaboratoryJoinApplicationService {
         }
 
         String laboratoryId = invite.getLaboratory().getId();
-        if (memberRepository.findByLaboratory_IdAndUser_IdAndMemberStatus(
-                        laboratoryId, userId, LaboratoryMemberStatus.ACTIVE)
-                .isPresent()) {
-            throw new BusinessException(ErrorCode.LAB_ALREADY_MEMBER, "用户已是该实验室成员");
+        if (memberRepository.existsByUser_IdAndMemberStatus(
+                userId, LaboratoryMemberStatus.ACTIVE)) {
+            throw new BusinessException(
+                    ErrorCode.LAB_ALREADY_MEMBER,
+                    "用户已加入一个实验室，不能再次申请加入其他实验室"
+            );
         }
         if (applicationRepository.existsByLaboratory_IdAndApplicant_IdAndStatus(
                 laboratoryId, userId, JoinApplicationStatus.PENDING)) {
@@ -201,14 +201,26 @@ public class LaboratoryJoinApplicationService {
     }
 
     private void approveMembership(LaboratoryJoinApplication application, Instant now) {
+        User applicant = userRepository.findByIdForUpdate(application.getApplicant().getId())
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND, "申请人不存在或已停用"));
+        if (memberRepository.existsByUser_IdAndMemberStatus(
+                applicant.getId(), LaboratoryMemberStatus.ACTIVE)) {
+            throw new BusinessException(
+                    ErrorCode.LAB_ALREADY_MEMBER,
+                    "申请人已加入一个实验室，不能再次加入其他实验室"
+            );
+        }
+
         LaboratoryMember member = memberRepository.findByLaboratory_IdAndUser_Id(
                         application.getLaboratory().getId(),
-                        application.getApplicant().getId())
+                        applicant.getId())
                 .orElse(null);
         if (member == null) {
             memberRepository.save(new LaboratoryMember(
                     application.getLaboratory(),
-                    application.getApplicant(),
+                    applicant,
                     LaboratoryRole.MEMBER,
                     application,
                     now
@@ -227,6 +239,13 @@ public class LaboratoryJoinApplicationService {
 
     private User requireActiveUser(String userId) {
         return userRepository.findByIdAndStatus(userId, UserStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.AUTH_UNAUTHORIZED, "当前用户不存在或已停用"));
+    }
+
+    private User lockActiveUser(String userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.AUTH_UNAUTHORIZED, "当前用户不存在或已停用"));
     }

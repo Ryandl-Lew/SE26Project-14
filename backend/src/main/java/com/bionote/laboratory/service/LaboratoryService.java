@@ -49,7 +49,8 @@ public class LaboratoryService {
             CreateLaboratoryRequest request
     ) {
         User administrator = requireSystemAdministrator(administratorId);
-        User leader = requireActiveUser(request.leaderIdentifier());
+        User leader = lockActiveUser(requireActiveUser(request.leaderIdentifier()).getId());
+        requireNoActiveMembership(leader.getId());
         Laboratory laboratory = laboratoryRepository.saveAndFlush(new Laboratory(
                 generateCode(),
                 request.name().trim(),
@@ -103,9 +104,13 @@ public class LaboratoryService {
                     ErrorCode.LAB_VERSION_CONFLICT, "实验室信息已被修改，请刷新后重试");
         }
 
-        User newLeader = requireActiveUser(request.leaderIdentifier());
+        User newLeader = lockActiveUser(requireActiveUser(request.leaderIdentifier()).getId());
         User oldLeader = laboratory.getLeader();
         Instant now = Instant.now();
+
+        if (oldLeader == null || !oldLeader.getId().equals(newLeader.getId())) {
+            requireNoMembershipInAnotherLaboratory(newLeader.getId(), laboratoryId);
+        }
 
         if (oldLeader != null && !oldLeader.getId().equals(newLeader.getId())) {
             memberRepository.findByLaboratory_IdAndUser_Id(laboratoryId, oldLeader.getId())
@@ -149,6 +154,36 @@ public class LaboratoryService {
                 .filter(user -> user.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.RESOURCE_NOT_FOUND, "指定的实验室负责人不存在或已停用"));
+    }
+
+    private User lockActiveUser(String userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .filter(user -> user.getStatus() == UserStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND, "指定的实验室负责人不存在或已停用"));
+    }
+
+    private void requireNoActiveMembership(String userId) {
+        if (memberRepository.existsByUser_IdAndMemberStatus(
+                userId, LaboratoryMemberStatus.ACTIVE)) {
+            throw new BusinessException(
+                    ErrorCode.LAB_ALREADY_MEMBER,
+                    "指定的实验室负责人已加入其他实验室"
+            );
+        }
+    }
+
+    private void requireNoMembershipInAnotherLaboratory(
+            String userId,
+            String laboratoryId
+    ) {
+        if (memberRepository.existsByUser_IdAndMemberStatusAndLaboratory_IdNot(
+                userId, LaboratoryMemberStatus.ACTIVE, laboratoryId)) {
+            throw new BusinessException(
+                    ErrorCode.LAB_ALREADY_MEMBER,
+                    "指定的实验室负责人已加入其他实验室"
+            );
+        }
     }
 
     private String generateCode() {

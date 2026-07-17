@@ -45,7 +45,7 @@ Development seeding is enabled by default. All demo accounts use password `12345
 | `admin` | System administrator | creates laboratories and transfers leaders |
 | `li` | 李同学 | project owner/member |
 | `wang` | 王同学 | project member |
-| `zhang` | 张老师 | reviewer |
+| `zhang` | 张老师 | laboratory mentor/leader |
 
 Set `SEED_ENABLED=false` outside local demonstration environments.
 

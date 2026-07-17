@@ -7,6 +7,7 @@ This document defines the implemented contract for username/email login, account
 - Account status and laboratory membership status are independent. A user with no laboratory, or with a pending application, still has an `ACTIVE` account and may log in.
 - System roles and laboratory roles are independent. `SystemRole.ADMIN` controls platform administration, while `LaboratoryRole` is scoped to one laboratory.
 - Only a system `ADMIN` creates a laboratory or transfers its leader. The designated leader is an active `LAB_ADMIN` member.
+- A user may have at most one `ACTIVE` laboratory membership at a time. After leaving or being removed, the user may join another laboratory.
 - Usernames and emails are unique ignoring case. Generated normalized columns enforce `trim + lowercase` uniqueness. Usernames must not contain `@`.
 - Project access remains controlled by `project_members`. Laboratory membership does not automatically grant access to every laboratory project.
 - A project may be personal (`laboratoryId=null`) or belong to one laboratory.
@@ -23,7 +24,7 @@ This document defines the implemented contract for username/email login, account
 | --- | --- |
 | `SystemRole` | `USER`, `ADMIN` |
 | `LaboratoryStatus` | `ACTIVE`, `ARCHIVED` |
-| `LaboratoryRole` | `LAB_ADMIN`, `MENTOR`, `REVIEWER`, `MEMBER` |
+| `LaboratoryRole` | `LAB_ADMIN`, `MENTOR`, `MEMBER` |
 | `LaboratoryMemberStatus` | `ACTIVE`, `LEFT`, `REMOVED` |
 | `LaboratoryInviteStatus` | `ACTIVE`, `REVOKED` |
 | `JoinApplicationOrigin` | `REGISTRATION`, `LATER_JOIN` |
@@ -116,7 +117,7 @@ The response contains invite metadata and plaintext `inviteCode`. No later endpo
 
 ### `GET /api/v1/laboratories/{laboratoryId}/invites`
 
-Allowed for `LAB_ADMIN`, `MENTOR` and `REVIEWER`. Returns paginated invite metadata without the plaintext code.
+Allowed for active `LAB_ADMIN` and `MENTOR` members. Returns paginated invite metadata without the plaintext code.
 
 ### `POST /api/v1/laboratories/{laboratoryId}/invites/{inviteId}/revoke`
 
@@ -140,11 +141,11 @@ Allows the applicant to cancel a `PENDING` application. Returns `204`.
 
 ### `GET /api/v1/laboratories/{laboratoryId}/join-applications`
 
-Allowed for active `LAB_ADMIN`, `MENTOR` and `REVIEWER` members. Supports `status`, `page` and `size` query parameters and returns `PageResponse<LaboratoryJoinApplicationResponse>`.
+Allowed for active `LAB_ADMIN` and `MENTOR` members. Supports `status`, `page` and `size` query parameters and returns `PageResponse<LaboratoryJoinApplicationResponse>`.
 
 ### `POST /api/v1/laboratories/{laboratoryId}/join-applications/{applicationId}/review`
 
-Allowed for active `LAB_ADMIN`, `MENTOR` and `REVIEWER` members.
+Allowed for active `LAB_ADMIN` and `MENTOR` members.
 
 `ReviewLaboratoryJoinApplicationRequest` fields:
 
@@ -192,7 +193,7 @@ Allowed for active `LAB_ADMIN` members. This operation marks the membership `REM
 | `LABORATORY_ACCESS_DENIED` | 403 | Laboratory role does not allow the operation |
 | `LAB_INVITE_INVALID` | 400 | Invite cannot be parsed or found |
 | `LAB_INVITE_UNAVAILABLE` | 409 | Invite is revoked, expired or exhausted |
-| `LAB_ALREADY_MEMBER` | 409 | User already has an active membership |
+| `LAB_ALREADY_MEMBER` | 409 | User already has an active membership in a laboratory |
 | `LAB_APPLICATION_ALREADY_PENDING` | 409 | User already has a pending application |
 | `LAB_APPLICATION_NOT_PENDING` | 409 | Application cannot be reviewed or cancelled in its current state |
 | `LAB_MEMBER_NOT_FOUND` | 404 | Laboratory member does not exist |

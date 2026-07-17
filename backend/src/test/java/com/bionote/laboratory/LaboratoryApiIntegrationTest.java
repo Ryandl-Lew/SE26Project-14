@@ -88,6 +88,46 @@ class LaboratoryApiIntegrationTest {
                 liApplication.at("/data/version").asLong()
         );
 
+        performJson(
+                post("/api/v1/laboratories"),
+                administratorToken,
+                Map.of(
+                        "name", "Duplicate membership laboratory " + shortId(),
+                        "description", "Li cannot lead a second laboratory",
+                        "leaderIdentifier", "li"
+                ),
+                status().isConflict()
+        ).with(json -> assertThat(json.path("code").asText())
+                .isEqualTo("LAB_ALREADY_MEMBER"));
+
+        JsonNode secondaryLaboratory = performJson(
+                post("/api/v1/laboratories"),
+                administratorToken,
+                Map.of(
+                        "name", "Secondary laboratory " + shortId(),
+                        "description", "Laboratory used to verify exclusive membership",
+                        "leaderIdentifier", "admin"
+                ),
+                status().isCreated()
+        ).json();
+        String secondaryLaboratoryId = secondaryLaboratory.at("/data/id").asText();
+        JsonNode secondaryInvite = performJson(
+                post("/api/v1/laboratories/{laboratoryId}/invites", secondaryLaboratoryId),
+                administratorToken,
+                Map.of("maxUses", 2),
+                status().isCreated()
+        ).json();
+        performJson(
+                post("/api/v1/laboratory-join-applications"),
+                liToken,
+                Map.of(
+                        "inviteCode", secondaryInvite.at("/data/inviteCode").asText(),
+                        "message", "Try to join a second laboratory"
+                ),
+                status().isConflict()
+        ).with(json -> assertThat(json.path("code").asText())
+                .isEqualTo("LAB_ALREADY_MEMBER"));
+
         JsonNode wangApplication = createApplication(wangToken, inviteCode, "Please add Wang");
         String wangApplicationId = wangApplication.at("/data/id").asText();
         long wangApplicationVersion = wangApplication.at("/data/version").asLong();
@@ -127,13 +167,13 @@ class LaboratoryApiIntegrationTest {
                 ),
                 leaderToken,
                 Map.of(
-                        "role", "REVIEWER",
+                        "role", "MENTOR",
                         "memberStatus", "ACTIVE",
                         "version", liMembership.path("version").asLong()
                 ),
                 status().isOk()
         ).json();
-        assertThat(updatedLiMembership.at("/data/role").asText()).isEqualTo("REVIEWER");
+        assertThat(updatedLiMembership.at("/data/role").asText()).isEqualTo("MENTOR");
 
         String rejectedUsername = "rejected_" + shortId();
         register(rejectedUsername, rejectedUsername + "@example.com");
@@ -152,7 +192,7 @@ class LaboratoryApiIntegrationTest {
                         laboratoryId,
                         rejectedApplicationId
                 ),
-                leaderToken,
+                liToken,
                 Map.of("decision", "REJECT", "version", rejectedApplicationVersion),
                 status().isBadRequest()
         ).with(json -> assertThat(json.path("code").asText()).isEqualTo("VALIDATION_ERROR"));
@@ -163,7 +203,7 @@ class LaboratoryApiIntegrationTest {
                         laboratoryId,
                         rejectedApplicationId
                 ),
-                leaderToken,
+                liToken,
                 Map.of(
                         "decision", "REJECT",
                         "reason", "Insufficient information",
@@ -206,7 +246,7 @@ class LaboratoryApiIntegrationTest {
 
         JsonNode invites = getJson(
                 get("/api/v1/laboratories/{laboratoryId}/invites", laboratoryId),
-                leaderToken,
+                liToken,
                 status().isOk()
         );
         assertThat(invites.at("/data/items/0/status").asText()).isEqualTo("REVOKED");
@@ -239,6 +279,87 @@ class LaboratoryApiIntegrationTest {
                 .isEqualTo("LAB_ADMIN");
         assertThat(findMember(transferredMembers, "zhang").path("role").asText())
                 .isEqualTo("MENTOR");
+    }
+
+    @Test
+    void approvingASecondPendingApplicationIsRejected() throws Exception {
+        String administratorToken = loginToken("admin");
+        String zhangToken = loginToken("zhang");
+        String candidateUsername = "exclusive_" + shortId();
+        register(candidateUsername, candidateUsername + "@example.com");
+        String candidateToken = loginToken(candidateUsername);
+
+        JsonNode firstLaboratory = performJson(
+                post("/api/v1/laboratories"),
+                administratorToken,
+                Map.of(
+                        "name", "First exclusive laboratory " + shortId(),
+                        "description", "First laboratory for exclusive membership test",
+                        "leaderIdentifier", "zhang"
+                ),
+                status().isCreated()
+        ).json();
+        JsonNode secondLaboratory = performJson(
+                post("/api/v1/laboratories"),
+                administratorToken,
+                Map.of(
+                        "name", "Second exclusive laboratory " + shortId(),
+                        "description", "Second laboratory for exclusive membership test",
+                        "leaderIdentifier", "admin"
+                ),
+                status().isCreated()
+        ).json();
+        String firstLaboratoryId = firstLaboratory.at("/data/id").asText();
+        String secondLaboratoryId = secondLaboratory.at("/data/id").asText();
+
+        String firstInviteCode = performJson(
+                post("/api/v1/laboratories/{laboratoryId}/invites", firstLaboratoryId),
+                zhangToken,
+                Map.of("maxUses", 2),
+                status().isCreated()
+        ).json().at("/data/inviteCode").asText();
+        String secondInviteCode = performJson(
+                post("/api/v1/laboratories/{laboratoryId}/invites", secondLaboratoryId),
+                administratorToken,
+                Map.of("maxUses", 2),
+                status().isCreated()
+        ).json().at("/data/inviteCode").asText();
+
+        JsonNode firstApplication = createApplication(
+                candidateToken, firstInviteCode, "Apply to the first laboratory");
+        JsonNode secondApplication = createApplication(
+                candidateToken, secondInviteCode, "Apply to the second laboratory");
+
+        approveApplication(
+                zhangToken,
+                firstLaboratoryId,
+                firstApplication.at("/data/id").asText(),
+                firstApplication.at("/data/version").asLong()
+        );
+
+        performJson(
+                post(
+                        "/api/v1/laboratories/{laboratoryId}/join-applications/{applicationId}/review",
+                        secondLaboratoryId,
+                        secondApplication.at("/data/id").asText()
+                ),
+                administratorToken,
+                Map.of(
+                        "decision", "APPROVE",
+                        "version", secondApplication.at("/data/version").asLong()
+                ),
+                status().isConflict()
+        ).with(json -> assertThat(json.path("code").asText())
+                .isEqualTo("LAB_ALREADY_MEMBER"));
+
+        JsonNode memberships = getJson(
+                get("/api/v1/laboratories/mine"),
+                candidateToken,
+                status().isOk()
+        );
+        assertThat(memberships.at("/data")).hasSize(1);
+        assertThat(memberships.at("/data/0/laboratory/id").asText())
+                .isEqualTo(firstLaboratoryId);
     }
 
     private JsonNode createApplication(String token, String inviteCode, String message)
@@ -296,7 +417,10 @@ class LaboratoryApiIntegrationTest {
     }
 
     private String passwordFor(String identifier) {
-        return identifier.startsWith("rejected_") ? "password123" : "123456";
+        return switch (identifier) {
+            case "admin", "li", "wang", "zhang" -> "123456";
+            default -> "password123";
+        };
     }
 
     private JsonNode getJson(

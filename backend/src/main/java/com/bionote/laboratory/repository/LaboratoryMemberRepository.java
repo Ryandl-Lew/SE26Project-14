@@ -31,6 +31,17 @@ public interface LaboratoryMemberRepository extends JpaRepository<LaboratoryMemb
             LaboratoryMemberStatus status
     );
 
+    boolean existsByUser_IdAndMemberStatus(
+            String userId,
+            LaboratoryMemberStatus status
+    );
+
+    boolean existsByUser_IdAndMemberStatusAndLaboratory_IdNot(
+            String userId,
+            LaboratoryMemberStatus status,
+            String laboratoryId
+    );
+
     long countByLaboratory_IdAndRoleAndMemberStatus(
             String laboratoryId,
             LaboratoryRole role,
