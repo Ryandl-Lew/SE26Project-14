@@ -1,55 +1,76 @@
-/* Dashboard 专属布局（抽取自原型 .hero-strip / .work-grid） */
-.hero-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  gap: 18px;
+/* Dashboard 工作台布局 */
+.dash-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
   margin-bottom: 18px;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background:
-    linear-gradient(135deg, rgba(23, 107, 91, 0.1), rgba(34, 111, 154, 0.08)),
-    var(--paper);
-  box-shadow: var(--shadow);
 }
 
-.hero-copy h1 {
-  max-width: 680px;
-  font-size: 30px;
-}
-
-.lab-visual {
+.dash-grid {
   display: grid;
-  align-content: stretch;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.work-grid {
+.continue-project {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.continue-project-main {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(310px, 0.55fr);
-  gap: 18px;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 280px;
 }
 
-/* 通用列表项（待办 / 提醒 / 动态） */
-.list-item {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-}
-
-.list-item-title {
+.continue-project-title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
+  font-size: 15px;
   font-weight: 700;
 }
 
+.continue-project-title a:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
+.continue-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.continue-progress .progress {
+  flex: 1 1 auto;
+  max-width: 320px;
+}
+
+.table-link {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.table-link:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
 @media (max-width: 1180px) {
-  .hero-strip,
-  .work-grid {
-    grid-template-columns: 1fr;
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .dash-head {
+    flex-direction: column;
   }
 }

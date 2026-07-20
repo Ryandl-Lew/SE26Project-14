@@ -1,35 +1,30 @@
 /**
- * Sidebar 侧边栏导航
- * 品牌区 + 分组导航。使用 NavLink 高亮当前路由。
+ * Sidebar 侧边导航
+ * 品牌区 + 分组导航 + 当前项目上下文。
+ * 桌面持久显示；窄屏折叠为图标栏；移动端作为抽屉内容由 AppLayout 控制。
  */
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
+import { FlaskConical } from 'lucide-react'
+import { NAV_SECTIONS } from './nav'
+import { Icon } from '@/components/ui'
+import { useAppStore } from '@/store/appStore'
 
-/** 导航分组配置 */
-const NAV_SECTIONS = [
-  {
-    title: '项目工作区',
-    items: [
-      { to: '/', label: '工作台', icon: '⌂', end: true },
-      { to: '/projects', label: '项目管理', icon: '▣' },
-      { to: '/records', label: '实验记录', icon: '✎' },
-      { to: '/templates', label: '模板中心', icon: '▤' },
-    ],
-  },
-  {
-    title: '协作',
-    items: [
-      { to: '/search', label: '搜索中心', icon: '⌕' },
-      { to: '/team', label: '团队管理', icon: '☷' },
-      { to: '/ai', label: 'AI 助手', icon: 'AI' },
-    ],
-  },
-]
+/**
+ * @param {Object} props
+ * @param {boolean} [props.drawer] 是否以抽屉模式渲染（移动端）
+ * @param {() => void} [props.onNavigate] 点击导航后回调（抽屉模式关闭抽屉）
+ */
+export default function Sidebar({ drawer = false, onNavigate }) {
+  const currentProjectId = useAppStore((s) => s.currentProjectId)
+  const projects = useAppStore((s) => s.projects)
+  const currentProject = projects.find((p) => p.id === currentProjectId)
 
-export default function Sidebar() {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${drawer ? 'as-drawer' : ''}`.trim()}>
       <div className="brand">
-        <div className="brand-mark">B</div>
+        <div className="brand-mark">
+          <Icon name={FlaskConical} size={18} />
+        </div>
         <div className="brand-text">
           <div className="brand-name">BioNote</div>
           <div className="brand-sub">生物实验记录助手</div>
@@ -45,9 +40,13 @@ export default function Sidebar() {
                 key={item.to}
                 to={item.to}
                 end={item.end}
+                onClick={onNavigate}
+                title={item.label}
                 className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`.trim()}
               >
-                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-icon">
+                  <Icon name={item.icon} size={17} />
+                </span>
                 <span className="nav-label">{item.label}</span>
               </NavLink>
             ))}
@@ -55,6 +54,21 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {currentProject && (
+        <div className="sidebar-foot">
+          <div className="nav-section" style={{ margin: '0 0 6px' }}>
+            当前项目
+          </div>
+          <Link
+            to={`/projects/${currentProject.id}`}
+            className="sidebar-project"
+            onClick={onNavigate}
+          >
+            <strong>{currentProject.name}</strong>
+            <span className="small">{currentProject.code}</span>
+          </Link>
+        </div>
+      )}
     </aside>
   )
 }

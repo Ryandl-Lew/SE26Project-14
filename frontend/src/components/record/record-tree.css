@@ -1,4 +1,4 @@
-/* RecordTree 样式（抽取自原型 .record-tree / .tree-record） */
+/* RecordTree 记录目录样式 */
 .record-tree {
   display: grid;
   gap: 12px;
@@ -6,7 +6,7 @@
 
 .tree-group {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
 }
@@ -22,24 +22,56 @@
   justify-content: space-between;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .tree-record {
+  position: relative;
   width: 100%;
   display: grid;
   gap: 2px;
-  padding: 9px 10px 9px 18px;
+  padding: 8px 10px 8px 14px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--ink);
   background: transparent;
   text-align: left;
+  transition: background-color 0.15s ease;
 }
 
-.tree-record.active,
+.tree-record::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.tree-record strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tree-record:hover {
-  border-color: rgba(23, 107, 91, 0.22);
+  background: var(--gray-soft);
+}
+
+.tree-record.active {
+  border-color: var(--brand-line);
   background: var(--brand-soft);
+}
+
+.tree-record.active::before {
+  background: var(--brand);
+}
+
+.tree-date {
+  color: #9aa5ad;
 }

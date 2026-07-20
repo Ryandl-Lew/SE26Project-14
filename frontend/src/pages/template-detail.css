@@ -1,0 +1,55 @@
+/* 模板页主从布局 */
+.templates-workspace {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.templates-master {
+  position: sticky;
+  top: calc(var(--topbar) + 16px);
+}
+
+.template-list {
+  display: grid;
+  gap: 8px;
+}
+
+.template-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+.template-item:hover {
+  border-color: var(--brand-line);
+}
+
+.template-item.active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.template-item-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .templates-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .templates-master {
+    position: static;
+  }
+}

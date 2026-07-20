@@ -6,12 +6,17 @@
 import { create } from 'zustand'
 
 export const useAppStore = create((set) => ({
-  /** 顶栏「当前项目」——记录页等以此为上下文 */
+  /** 顶栏「当前项目」——记录页、团队页等以此为上下文 */
   currentProjectId: 'p-001',
   /** 全局搜索关键词 */
   searchKeyword: 'GFP',
+  /** 项目列表缓存（由 AppLayout 经 API 层加载一次，供外壳切换器 / 上下文展示） */
+  projects: [],
+  projectsLoaded: false,
   /** @param {string} id */
   setCurrentProject: (id) => set({ currentProjectId: id }),
   /** @param {string} keyword */
   setSearchKeyword: (keyword) => set({ searchKeyword: keyword }),
+  /** @param {import('@/domain/models').Project[]} list */
+  setProjects: (list) => set({ projects: list, projectsLoaded: true }),
 }))

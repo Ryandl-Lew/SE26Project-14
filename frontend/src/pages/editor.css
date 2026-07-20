@@ -1,22 +1,40 @@
-/* 编辑器 / AI 助手三栏布局（抽取自原型 .editor-shell） */
+/* 实验编辑器 / AI 助手布局 */
+
+/* 编辑器三栏：章节导航 + 画布 + 状态侧栏 */
 .editor-shell {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr) 320px;
+  grid-template-columns: 180px minmax(0, 1fr) 280px;
   gap: 16px;
+  align-items: start;
+}
+
+.editor-outline {
+  position: sticky;
+  top: calc(var(--topbar) + 16px);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.editor-outline-title {
+  margin: 0 2px 8px;
+  font-weight: 600;
 }
 
 .outline-list {
   display: grid;
-  gap: 6px;
+  gap: 2px;
 }
 
 .outline-list button {
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: var(--radius);
-  color: var(--muted);
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
   background: transparent;
+  font-size: 13px;
   text-align: left;
 }
 
@@ -26,56 +44,189 @@
   background: var(--brand-soft);
 }
 
-.editor-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+.editor-canvas {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
-.tool-btn {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.editor-document {
-  min-height: 480px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
+.editor-aside {
+  display: grid;
+  gap: 16px;
+  position: sticky;
+  top: calc(var(--topbar) + 16px);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 18px;
+}
+
+/* 固定操作栏 */
+.editor-actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -4px 16px rgba(27, 36, 48, 0.06);
+}
+
+/* 新建记录：创建方式选择 */
+.create-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  max-width: 860px;
+}
+
+.create-choice {
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+button.create-choice:hover {
+  border-color: var(--brand);
+}
+
+.create-choice-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.create-choice-templates {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.template-pick {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 13px;
+}
+
+.template-pick:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* AI 助手两栏 */
+.ai-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.ai-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ai-feature-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--ink-2);
+  background: var(--paper);
+  font-size: 13px;
+}
+
+.ai-feature-btn.active {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
 }
 
 @media (max-width: 1180px) {
   .editor-shell {
-    grid-template-columns: 180px minmax(0, 1fr);
+    grid-template-columns: 160px minmax(0, 1fr);
   }
 
-  .editor-shell > aside:last-child {
+  .editor-aside {
+    position: static;
     grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 860px) {
-  .editor-shell {
+  .editor-shell,
+  .ai-shell,
+  .create-choice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editor-outline {
+    position: static;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .editor-outline-title {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .outline-list {
+    display: flex;
+    gap: 4px;
+  }
+
+  .outline-list button {
+    white-space: nowrap;
+  }
+
+  .editor-aside {
     grid-template-columns: 1fr;
   }
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .editor-actionbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-actionbar .card-actions {
+    justify-content: flex-end;
   }
 }

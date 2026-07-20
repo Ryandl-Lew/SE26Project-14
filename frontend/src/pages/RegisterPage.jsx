@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { FlaskConical } from 'lucide-react'
+import { Icon } from '@/components/ui'
 import { useAuthStore } from '@/store/authStore'
 import './login.css'
 
@@ -66,7 +68,7 @@ export default function RegisterPage() {
     <div className="login-page">
       <div className="login-card register-card">
         <div className="login-header">
-          <div className="login-brand-mark">B</div>
+          <div className="login-brand-mark"><Icon name={FlaskConical} size={22} /></div>
           <h1>创建账号</h1>
           <p className="login-sub">BioNote 生物实验记录助手</p>
         </div>

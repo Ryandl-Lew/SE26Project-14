@@ -5,7 +5,9 @@
  */
 import { useState } from 'react'
 import { Link, useNavigate, Navigate } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
+import { FlaskConical } from 'lucide-react'
+import { Icon } from '@/components/ui'
+import { useAuthStore } from '@/store/authStore'
 import './login.css'
 
 export default function LoginPage() {
@@ -45,7 +47,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-brand-mark">B</div>
+          <div className="login-brand-mark"><Icon name={FlaskConical} size={22} /></div>
           <h1>BioNote</h1>
           <p className="login-sub">生物实验记录助手</p>
         </div>

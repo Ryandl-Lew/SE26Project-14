@@ -1,18 +1,16 @@
-/* StatCard 统计卡样式（抽取自原型 .stat-card） */
+/* StatCard 统计卡样式 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  min-height: 122px;
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
-  box-shadow: var(--card-shadow);
 }
 
 .stat-top {
@@ -21,28 +19,28 @@
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .stat-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--brand-soft);
   color: var(--brand);
 }
 
 .stat-number {
-  margin-top: 12px;
-  font-size: 30px;
-  line-height: 1;
-  font-weight: 800;
+  margin-top: 8px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .stat-note {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
   font-size: 12px;
 }
@@ -53,7 +51,7 @@
   }
 }
 
-@media (max-width: 860px) {
+@media (max-width: 560px) {
   .stats-grid {
     grid-template-columns: 1fr;
   }

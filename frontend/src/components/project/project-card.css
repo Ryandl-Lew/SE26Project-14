@@ -1,53 +1,109 @@
-/* ProjectCard 样式（抽取自原型 .project-card / .progress） */
-.project-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.project-card {
+/* 项目列表行样式（紧凑、可扫描） */
+.project-list {
   display: grid;
   gap: 10px;
-  padding: 16px;
+}
+
+.project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(90px, 0.6fr) minmax(140px, 0.9fr) minmax(90px, 0.6fr) minmax(100px, 0.7fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
 }
 
-.project-card:hover {
-  border-color: rgba(23, 107, 91, 0.45);
-  box-shadow: 0 10px 24px rgba(35, 53, 48, 0.07);
+.project-row:hover {
+  border-color: var(--brand);
 }
 
-.card-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+.project-row.is-current {
+  border-color: var(--brand-line);
+  background: #fbfefd;
 }
 
-.progress {
-  height: 8px;
+.project-row-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.project-row-main p {
+  margin-bottom: 0;
   overflow: hidden;
-  border-radius: 999px;
-  background: #e9efec;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--brand);
+.project-row-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.project-row-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gray-soft);
+  color: var(--ink-2);
+  font-size: 11px;
+}
+
+.project-row-meta {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.project-row-progress {
+  display: grid;
+  gap: 6px;
+}
+
+.project-row-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 @media (max-width: 1180px) {
-  .project-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .project-row {
+    grid-template-columns: minmax(0, 1.6fr) minmax(120px, 0.8fr) minmax(90px, 0.6fr) auto;
+  }
+
+  .project-row-meta:nth-of-type(4),
+  .project-row-progress {
+    display: none;
   }
 }
 
 @media (max-width: 860px) {
-  .project-grid {
-    grid-template-columns: 1fr;
+  .project-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    cursor: default;
+  }
+
+  .project-row-meta {
+    grid-auto-flow: column;
+    justify-content: start;
+    gap: 8px;
+  }
+
+  .project-row-progress {
+    display: grid;
   }
 }

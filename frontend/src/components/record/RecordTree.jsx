@@ -1,6 +1,6 @@
 /**
- * RecordTree 实验记录目录树
- * 按分组（月份 / 资料）展示当前项目的记录，点击进入详情。
+ * RecordTree 实验记录目录
+ * 按「年-月」分组展示记录，点击在主从工作区中选中。
  */
 import { RECORD_STATUS_LABELS } from '@/domain'
 import './record-tree.css'
@@ -44,8 +44,9 @@ export default function RecordTree({ records, activeId, onSelect }) {
             >
               <strong>{record.title}</strong>
               <span className="muted small">
-                {record.experimentType} · {RECORD_STATUS_LABELS[record.status]} · {record.updatedAt}
+                {record.experimentType} · {RECORD_STATUS_LABELS[record.status]}
               </span>
+              <span className="muted small tree-date">{record.updatedAt}</span>
             </button>
           ))}
         </div>
