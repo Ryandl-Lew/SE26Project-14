@@ -1,20 +1,16 @@
 /**
- * 搜索中心 SearchPage
+ * 搜索中心 SearchPage — SaaS v2
  *
  * 对接到后端 GET /api/v1/search，支持：
  * - 全局搜索（所有可访问项目）与项目内搜索
  * - 关键词 <em> 高亮渲染
  * - 分页加载（Load More + IntersectionObserver 自动触发）
  * - URL Query 双向同步（?q=keyword&projectId=...）
- *
- * 实体类型映射：
- *   PROJECT → 📁 项目（violet）  RECORD → 🧪 实验记录（green）
- *   FILE   → 📎 文件（blue）     TEMPLATE → 📋 模板（amber）
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader, Surface, Badge } from '@/components/ui'
-import { SEARCH_ENTITY_LABELS, SEARCH_ENTITY_TONES, SEARCH_ENTITY_ICONS } from '@/domain'
+import { SEARCH_ENTITY_LABELS, SEARCH_ENTITY_TONES } from '@/domain'
 import { globalSearch } from '@/api/search'
 import './search.css'
 
@@ -22,16 +18,49 @@ import './search.css'
 // 常量
 // ──────────────────────────────────────────────
 
-/** 每页条数 */
 const PAGE_SIZE = 20
 
-/** Mock 项目列表（TODO: 替换为真实项目列表 API） */
 const MOCK_PROJECTS = [
   { id: '', label: '全部项目' },
   { id: 'p-001', label: 'GFP 融合蛋白表达项目' },
   { id: 'p-002', label: 'IFN-β 表达检测' },
   { id: 'p-003', label: '细胞转染条件优化' },
 ]
+
+/** 实体类型 → SVG 图标 (用于列表项前缀) */
+const ENTITY_ICON_SVG = {
+  PROJECT: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+    </svg>
+  ),
+  RECORD: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  ),
+  TEMPLATE: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="21" x2="9" y2="9" />
+    </svg>
+  ),
+  FILE: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
+      <polyline points="13 2 13 9 20 9" />
+    </svg>
+  ),
+}
 
 // ──────────────────────────────────────────────
 // 组件
@@ -41,7 +70,7 @@ export default function SearchPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // ── 状态 ──
+  // ── 状态（9 个核心 State，完整保留）──
   const [keyword, setKeyword] = useState(searchParams.get('q') || '')
   const [projectId, setProjectId] = useState(searchParams.get('projectId') || '')
   const [hits, setHits] = useState([])
@@ -52,9 +81,7 @@ export default function SearchPage() {
   const [error, setError] = useState(null)
   const [searched, setSearched] = useState(false)
 
-  // 输入框 ref
   const inputRef = useRef(null)
-  // Load More 哨兵 ref
   const sentinelRef = useRef(null)
 
   // ── 执行搜索 ──
@@ -98,9 +125,9 @@ export default function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── IntersectionObserver：Load More 按钮进入视口时自动加载 ──
+  // ── IntersectionObserver：Load More 哨兵自动触发 ──
   useEffect(() => {
-    if (page + 1 >= totalPages) return // 没有更多页
+    if (page + 1 >= totalPages) return
 
     const sentinel = sentinelRef.current
     if (!sentinel) return
@@ -120,12 +147,10 @@ export default function SearchPage() {
 
   // ── 事件处理 ──
 
-  /** 触发搜索（重置到第一页） */
   const handleSearch = (e) => {
     e?.preventDefault()
     if (!keyword.trim()) return
 
-    // 同步 URL Query
     const params = new URLSearchParams()
     params.set('q', keyword.trim())
     if (projectId) params.set('projectId', projectId)
@@ -138,20 +163,17 @@ export default function SearchPage() {
     doSearch(keyword.trim(), projectId || null, 0, false)
   }
 
-  /** 回车触发搜索 */
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearch()
     }
   }
 
-  /** 项目过滤变更 */
   const handleProjectChange = (e) => {
     const newPid = e.target.value
     setProjectId(newPid)
 
     if (keyword.trim()) {
-      // 切换项目过滤时立即重新搜索
       const params = new URLSearchParams()
       params.set('q', keyword.trim())
       if (newPid) params.set('projectId', newPid)
@@ -165,7 +187,6 @@ export default function SearchPage() {
     }
   }
 
-  /** 点击列表项跳转 */
   const resolveUrl = (hit) => {
     switch (hit.entityType) {
       case 'PROJECT':
@@ -196,10 +217,21 @@ export default function SearchPage() {
     }
   }
 
-  /** Load More 手动点击 */
   const handleLoadMore = () => {
     if (page + 1 < totalPages && !loading) {
       doSearch(keyword, projectId || null, page + 1, true)
+    }
+  }
+
+  const formatMetaTime = (iso) => {
+    if (!iso) return ''
+    try {
+      const d = new Date(iso)
+      if (Number.isNaN(d.getTime())) return ''
+      const pad = (n) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    } catch {
+      return ''
     }
   }
 
@@ -212,15 +244,15 @@ export default function SearchPage() {
     <section className="search-page">
       <PageHeader
         eyebrow="搜索中心"
-        title="全局搜索"
-        description="跨项目、实验记录和文件附件进行关键词检索。"
+        title="全局检索"
+        description="跨项目、实验记录、附件和模板进行全文搜索"
       />
 
-      {/* ── 搜索栏 ── */}
-      <Surface className="search-bar-panel">
-        <form className="search-bar-form" onSubmit={handleSearch}>
-          <div className="search-input-wrap">
-            <span className="search-icon" aria-hidden="true">
+      {/* ── 搜索栏面板 ── */}
+      <div className="search-panel">
+        <form className="search-form" onSubmit={handleSearch}>
+          <div className="search-input-group">
+            <span className="search-input-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
@@ -231,7 +263,7 @@ export default function SearchPage() {
               ref={inputRef}
               className="search-input"
               type="text"
-              placeholder="输入关键词搜索项目、实验记录或文件…"
+              placeholder="搜索项目名称、实验记录、文件附件…"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -240,21 +272,25 @@ export default function SearchPage() {
             {keyword && (
               <button
                 type="button"
-                className="search-clear"
+                className="search-input-clear"
                 onClick={() => {
                   setKeyword('')
                   inputRef.current?.focus()
                 }}
                 aria-label="清除搜索词"
               >
-                ✕
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
               </button>
             )}
           </div>
 
-          <div className="search-bar-filters">
+          <div className="search-form-actions">
             <select
-              className="project-filter-select"
+              className="search-project-select"
               value={projectId}
               onChange={handleProjectChange}
             >
@@ -265,16 +301,16 @@ export default function SearchPage() {
               ))}
             </select>
 
-            <button type="submit" className="primary-btn search-btn" disabled={loading}>
+            <button type="submit" className="primary-btn search-submit-btn" disabled={loading}>
               {loading ? '搜索中…' : '搜索'}
             </button>
           </div>
         </form>
-      </Surface>
+      </div>
 
-      {/* ── 状态信息 ── */}
+      {/* ── 状态信息栏 ── */}
       {searched && !loading && !error && (
-        <div className="search-status">
+        <div className="search-meta">
           {hits.length > 0 ? (
             <span>
               共找到 <strong>{total}</strong> 条结果
@@ -285,7 +321,7 @@ export default function SearchPage() {
               )}
             </span>
           ) : (
-            <span>未找到与「<strong>{keyword}</strong>」相关的结果</span>
+            <span>未找到与 <strong>「{keyword}」</strong>相关的结果</span>
           )}
         </div>
       )}
@@ -293,7 +329,13 @@ export default function SearchPage() {
       {/* ── 错误提示 ── */}
       {error && (
         <div className="search-error">
-          <span className="search-error-icon">⚠</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+               className="search-error-icon">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <span>{error}</span>
           <button className="link-btn" onClick={() => doSearch(keyword, projectId || null, 0, false)}>
             重试
@@ -301,31 +343,28 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* ── 首次加载提示 ── */}
+      {/* ── 初始空白态 ── */}
       {!searched && !loading && !error && (
-        <Surface className="search-placeholder">
-          <div className="search-placeholder-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                 className="search-placeholder-svg">
+        <div className="search-empty">
+          <div className="search-empty-icon">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </div>
-          <p className="search-placeholder-title">输入关键词开始搜索</p>
-          <p className="muted small">
-            支持搜索项目名称、实验记录标题与内容、文件附件名称
-          </p>
-        </Surface>
+          <p className="search-empty-title">输入关键词开始搜索</p>
+          <p className="search-empty-desc">支持搜索项目名称、实验记录标题与内容、文件附件名称</p>
+        </div>
       )}
 
-      {/* ── 加载骨架 ── */}
+      {/* ── 加载骨架屏 ── */}
       {loading && hits.length === 0 && (
-        <div className="search-loading-skeleton">
+        <div className="search-skeleton">
           {[1, 2, 3, 4, 5].map((n) => (
-            <Surface key={n} className="skeleton-item">
-              <div className="skeleton-line skeleton-title" />
-              <div className="skeleton-line skeleton-text" />
+            <Surface key={n} className="search-skeleton-item">
+              <div className="skeleton-line skeleton-line--title" />
+              <div className="skeleton-line skeleton-line--text" />
             </Surface>
           ))}
         </div>
@@ -337,7 +376,7 @@ export default function SearchPage() {
           {hits.map((hit, idx) => (
             <div
               key={`${hit.entityType}-${hit.entityId}-${idx}`}
-              className="search-hit-item"
+              className="search-hit-card"
               onClick={() => handleItemClick(hit)}
               role="link"
               tabIndex={0}
@@ -345,9 +384,10 @@ export default function SearchPage() {
                 if (e.key === 'Enter') handleItemClick(hit)
               }}
             >
-              <div className="search-hit-header">
-                <span className="search-hit-icon" aria-hidden="true">
-                  {SEARCH_ENTITY_ICONS[hit.entityType] || '🔍'}
+              {/* 头部：实体图标 + 标题 + 类型徽章 */}
+              <div className="search-hit-head">
+                <span className={`search-hit-icon search-hit-icon--${SEARCH_ENTITY_TONES[hit.entityType] || 'gray'}`}>
+                  {ENTITY_ICON_SVG[hit.entityType] || ENTITY_ICON_SVG.FILE}
                 </span>
                 <span className="search-hit-title">{hit.title}</span>
                 <Badge tone={SEARCH_ENTITY_TONES[hit.entityType] || 'gray'}>
@@ -355,6 +395,7 @@ export default function SearchPage() {
                 </Badge>
               </div>
 
+              {/* 摘要片段 (关键词高亮由后端注入 <em>) */}
               {hit.snippet && (
                 <div
                   className="search-hit-snippet"
@@ -362,12 +403,16 @@ export default function SearchPage() {
                 />
               )}
 
-              <div className="search-hit-footer">
-                <span className="muted small">{hit.targetUrl}</span>
+              {/* 底部：路径 · 更新时间 */}
+              <div className="search-hit-foot">
+                {hit.targetUrl && (
+                  <span className="search-hit-path">{hit.targetUrl}</span>
+                )}
                 {hit.updatedAt && (
-                  <span className="muted small">
-                    {new Date(hit.updatedAt).toLocaleString('zh-CN')}
-                  </span>
+                  <>
+                    <span className="search-hit-sep">·</span>
+                    <span className="search-hit-time">{formatMetaTime(hit.updatedAt)}</span>
+                  </>
                 )}
               </div>
             </div>
@@ -375,9 +420,9 @@ export default function SearchPage() {
 
           {/* ── Load More 哨兵 ── */}
           {showSentinel && (
-            <div ref={sentinelRef} className="search-load-more-wrap">
+            <div ref={sentinelRef} className="search-loadmore">
               <button
-                className="secondary-btn"
+                className="secondary-btn search-loadmore-btn"
                 onClick={handleLoadMore}
                 disabled={loading}
               >
@@ -388,7 +433,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* ── 追加加载中的指示器 ── */}
+      {/* ── 加载更多中的指示器 ── */}
       {loading && hits.length > 0 && (
         <div className="search-loading-more">
           <span className="search-spinner" />

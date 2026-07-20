@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { StatusBadge, Surface, Badge, GelPreview } from '@/components/ui'
+import { StatusBadge, Badge, GelPreview } from '@/components/ui'
 import FileManager from '@/components/file/FileManager'
 import { fetchRecord, fetchRecordComments, exportRecord } from '@/api'
 import { listRecordAttachments } from '@/api/files'
@@ -101,26 +101,27 @@ export default function RecordDetailPage() {
             onClick={handleExportPdf}
             disabled={exportingPdf}
           >
-            {exportingPdf ? '⏳ 导出中…' : '📄 导出 PDF'}
+            {exportingPdf ? '导出中…' : '导出 PDF'}
           </button>
           <button
             className="secondary-btn"
             onClick={handleExportMd}
             disabled={exportingMd}
           >
-            {exportingMd ? '⏳ 导出中…' : '📝 导出 Markdown'}
+            {exportingMd ? '导出中…' : '导出 Markdown'}
           </button>
         </div>
       </div>
 
       <div className="split-layout">
-        <Surface>
+        {/* ── 沉浸式阅读容器 ── */}
+        <div className="record-content-body">
           {record.sections.map((section) => (
-            <div key={section.id} style={{ marginBottom: 16 }}>
-              <h2>{section.title}</h2>
-              {section.body && <p className="muted">{section.body}</p>}
+            <div key={section.id} className="record-block">
+              <h2 className="record-block-title">{section.title}</h2>
+              {section.body && <p className="record-block-text">{section.body}</p>}
               {section.table && (
-                <div className="table-wrap">
+                <div className="table-wrap record-block-table">
                   <table>
                     <thead>
                       <tr>
@@ -142,22 +143,26 @@ export default function RecordDetailPage() {
             </div>
           ))}
 
-          <h2>评论与版本</h2>
-          <div className="stack">
-            {comments.map((c) => (
-              <div className="list-item" key={c.id}>
-                <div className="list-item-title">
-                  <span>
-                    {c.authorName} · {c.createdAt}
-                  </span>
-                  <Badge tone="amber">{c.category}</Badge>
+          {/* ── 评论块 ── */}
+          <div className="record-block">
+            <h2 className="record-block-title">评论与版本</h2>
+            <div className="stack">
+              {comments.map((c) => (
+                <div className="list-item" key={c.id}>
+                  <div className="list-item-title">
+                    <span>
+                      {c.authorName} · {c.createdAt}
+                    </span>
+                    <Badge tone="amber">{c.category}</Badge>
+                  </div>
+                  <div className="muted small">{c.content}</div>
                 </div>
-                <div className="muted small">{c.content}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </Surface>
+        </div>
 
+        {/* ── 侧边栏 ── */}
         <aside className="surface">
           <h2>元数据与附件</h2>
           <div className="side-list">
@@ -168,10 +173,10 @@ export default function RecordDetailPage() {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 10 }}>
             <GelPreview caption="结果图预览" />
           </div>
-          <h2 style={{ marginTop: 18 }}>文件管理</h2>
+          <h2 style={{ marginTop: 12 }}>文件管理</h2>
           <FileManager
             entityId={recordId}
             entityType="record"

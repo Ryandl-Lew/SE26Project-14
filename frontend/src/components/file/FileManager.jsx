@@ -1,5 +1,5 @@
 /**
- * FileManager — 通用文件管理组件
+ * FileManager — 通用文件管理组件 (SaaS v2)
  *
  * 适用场景：项目详情页附件区 / 实验记录详情页附件区
  *
@@ -131,17 +131,33 @@ function PreviewModal({ file, onClose }) {
                 })
               }}
             >
-              ↓ 下载
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              下载
             </button>
             <button
               className="fm-modal-btn"
               title="新窗口打开"
               onClick={() => window.open(previewUrl, '_blank')}
             >
-              ↗ 新窗口
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              新窗口
             </button>
             <button className="fm-modal-close" title="关闭 (Esc)" onClick={onClose}>
-              ✕
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
             </button>
           </div>
         </div>
@@ -152,6 +168,129 @@ function PreviewModal({ file, onClose }) {
             <iframe className="fm-modal-iframe" src={previewUrl} title={file.name} />
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ============================ 文件行子组件 ============================ */
+
+function FileRow({ file, compact = false, isDeleted = false, onPreview, onDownload, onDelete, onRestore }) {
+  const previewable = isPreviewable(file.name)
+
+  const handleRowClick = () => {
+    if (isDeleted) return
+    if (previewable) onPreview(file)
+    else onDownload(file)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleRowClick()
+    }
+  }
+
+  /* tooltip 内容 */
+  const tooltipLines = [file.name]
+  if (file.size != null) tooltipLines.push(`大小：${formatFileSize(file.size)}`)
+  if (file.createdAt) tooltipLines.push(`上传时间：${formatTime(file.createdAt)}`)
+
+  const rowClass = [
+    'fm-row',
+    isDeleted ? 'fm-row--deleted' : '',
+    !isDeleted && previewable ? 'fm-row--clickable' : '',
+    compact ? 'fm-row--compact' : '',
+  ].filter(Boolean).join(' ')
+
+  return (
+    <div
+      className={rowClass}
+      role={!isDeleted && previewable ? 'button' : undefined}
+      tabIndex={!isDeleted && previewable ? 0 : undefined}
+      onClick={!isDeleted && previewable ? handleRowClick : undefined}
+      onKeyDown={!isDeleted && previewable ? handleKeyDown : undefined}
+    >
+      {/* 图标 */}
+      <div className={`fm-cell fm-cell--icon fm-icon fm-icon--${getIconType(file.name)}${isDeleted ? ' fm-icon--deleted' : ''}`}>
+        {getIconLabel(file.name)}
+      </div>
+
+      {/* 文件名（弹性列 + CSS tooltip） */}
+      <span
+        className={`fm-cell fm-cell--name${isDeleted ? ' fm-text--deleted' : ''}`}
+        data-tooltip={tooltipLines.join('\n')}
+      >
+        <span className="fm-name-text">{file.name}</span>
+        {isDeleted && <span className="fm-badge--deleted">已删除</span>}
+      </span>
+
+      {/* 文件大小 */}
+      <span className={`fm-cell fm-cell--size${isDeleted ? ' fm-text--deleted' : ''}`}>
+        {formatFileSize(file.size)}
+      </span>
+
+      {/* 上传时间（compact 模式隐藏） */}
+      {!compact && (
+        <span className={`fm-cell fm-cell--time${isDeleted ? ' fm-text--deleted' : ''}`}>
+          {formatTime(file.createdAt)}
+        </span>
+      )}
+
+      {/* 操作按钮 */}
+      <div className="fm-cell fm-cell--actions">
+        {isDeleted ? (
+          <button
+            className="fm-action-btn fm-action-btn--restore"
+            title="恢复文件"
+            onClick={(e) => { e.stopPropagation(); onRestore?.(file) }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+            </svg>
+          </button>
+        ) : (
+          <>
+            {previewable && (
+              <button
+                className="fm-action-btn fm-action-btn--preview"
+                title="预览"
+                onClick={(e) => { e.stopPropagation(); onPreview(file) }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            )}
+            <button
+              className="fm-action-btn fm-action-btn--download"
+              title="下载"
+              onClick={(e) => { e.stopPropagation(); onDownload(file) }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+            <button
+              className="fm-action-btn fm-action-btn--delete"
+              title="删除"
+              onClick={(e) => { e.stopPropagation(); onDelete?.(file) }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -325,33 +464,48 @@ export default function FileManager({
     }
   }
 
+  const isEmpty = files.length === 0 && deletedFiles.length === 0
+
   /* ====================== 渲染 ====================== */
 
   return (
-    <div className={`fm-root${compact ? ' fm-compact' : ''}`}>
-      {/* ── 上传区 ── */}
-      <div className="fm-upload-bar">
-        <input ref={fileInputRef} type="file" hidden
+    <div className={`fm-root${compact ? ' fm-root--compact' : ''}`}>
+      {/* ── 工具栏 ── */}
+      <div className="fm-toolbar">
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
           accept=".jpg,.jpeg,.png,.pdf,.csv,.xls,.xlsx"
-          onChange={handleSelect} />
-        <button className="fm-upload-btn" disabled={!!uploading}
-          onClick={() => fileInputRef.current?.click()}>
-          <span>+</span> 上传附件
+          onChange={handleSelect}
+        />
+        <button
+          className="fm-upload-btn"
+          disabled={!!uploading}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          上传附件
         </button>
-        {/* 紧凑模式下隐藏上传提示文字 */}
         {!compact && (
-          <span className="fm-upload-hint">
-            支持 JPG, PNG, PDF, CSV, XLS，最大 20 MB
-          </span>
+          <span className="fm-toolbar-hint">JPG, PNG, PDF, CSV, XLS · 最大 20 MB</span>
         )}
-        <label className="fm-toggle-label" title="显示已软删除的文件">
-          <input type="checkbox" className="fm-toggle-input"
-            checked={showDeleted} disabled={loadingDeleted}
-            onChange={handleToggleDeleted} />
-          <span className="fm-toggle-track">
-            <span className="fm-toggle-thumb" />
-          </span>
-          <span className="fm-toggle-text">
+
+        {/* iOS 风格 Switch */}
+        <label className="fm-switch" title="显示已软删除的文件">
+          <input
+            type="checkbox"
+            className="fm-switch__input"
+            checked={showDeleted}
+            disabled={loadingDeleted}
+            onChange={handleToggleDeleted}
+          />
+          <span className="fm-switch__track" />
+          <span className="fm-switch__label">
             {loadingDeleted ? '加载中…' : '回收站'}
           </span>
         </label>
@@ -359,141 +513,72 @@ export default function FileManager({
 
       {/* ── 进度条 ── */}
       {uploading && (
-        <div className="fm-progress-bar">
-          <div className="fm-progress-meta">
-            <span className="fm-progress-name" title={uploading.name}>{uploading.name}</span>
-            <span className="fm-progress-pct">{uploading.progress}%</span>
+        <div className="fm-progress">
+          <div className="fm-progress__meta">
+            <span className="fm-progress__name" title={uploading.name}>{uploading.name}</span>
+            <span className="fm-progress__pct">{uploading.progress}%</span>
           </div>
-          <div className="fm-progress-track">
-            <div className="fm-progress-fill" style={{ width: `${uploading.progress}%` }} />
+          <div className="fm-progress__track">
+            <div className="fm-progress__fill" style={{ width: `${uploading.progress}%` }} />
           </div>
         </div>
       )}
 
-      {/* ── 文件列表 ── */}
-      {files.length === 0 && deletedFiles.length === 0 ? (
-        <div className="fm-empty">暂无附件，点击上方按钮上传</div>
+      {/* ── 空态 ── */}
+      {isEmpty ? (
+        <div className="fm-empty">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+               className="fm-empty__icon">
+            <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" />
+            <polyline points="13 2 13 9 20 9" />
+          </svg>
+          <p className="fm-empty__text">暂无附件</p>
+          <p className="fm-empty__hint">点击上方按钮上传</p>
+        </div>
       ) : (
-        <div className="fm-file-list">
+        /* ── 文件列表 ── */
+        <div className="fm-list">
           {/* 表头 */}
-          <div className="fm-row fm-header">
-            <span className="fm-header-icon" />
-            <span className="fm-header-name">文件名</span>
-            <span className="fm-header-size">大小</span>
-            {!compact && <span className="fm-header-time">上传时间</span>}
-            <span className="fm-header-actions">操作</span>
+          <div className="fm-row fm-row--header">
+            <span className="fm-cell fm-cell--icon fm-cell--header" />
+            <span className="fm-cell fm-cell--name fm-cell--header">文件名</span>
+            <span className="fm-cell fm-cell--size fm-cell--header">大小</span>
+            {!compact && (
+              <span className="fm-cell fm-cell--time fm-cell--header">上传时间</span>
+            )}
+            <span className="fm-cell fm-cell--actions fm-cell--header">操作</span>
           </div>
 
           {/* 活跃文件 */}
           {files.map((f) => (
-            <FileRow key={f.id} file={f} compact={compact}
-              onPreview={handlePreview} onDownload={handleDownload}
-              onDelete={handleDelete} />
+            <FileRow
+              key={f.id}
+              file={f}
+              compact={compact}
+              onPreview={handlePreview}
+              onDownload={handleDownload}
+              onDelete={handleDelete}
+            />
           ))}
 
           {/* 已删除文件 */}
           {showDeleted && deletedFiles.map((f) => (
-            <FileRow key={f.id} file={f} compact={compact} isDeleted
-              onPreview={handlePreview} onDownload={handleDownload}
-              onRestore={handleRestore} />
+            <FileRow
+              key={f.id}
+              file={f}
+              compact={compact}
+              isDeleted
+              onPreview={handlePreview}
+              onDownload={handleDownload}
+              onRestore={handleRestore}
+            />
           ))}
         </div>
       )}
 
       {/* ── 预览弹窗 ── */}
       <PreviewModal file={previewFile} onClose={handleClosePreview} />
-    </div>
-  )
-}
-
-/* ============================ 文件行子组件 ============================ */
-
-function FileRow({ file, compact = false, isDeleted = false, onPreview, onDownload, onDelete, onRestore }) {
-  const previewable = isPreviewable(file.name)
-
-  const handleRowClick = () => {
-    if (isDeleted) return
-    if (previewable) onPreview(file)
-    else onDownload(file)
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      handleRowClick()
-    }
-  }
-
-  /* 构建 tooltip 内容 */
-  const tooltipLines = [file.name]
-  if (file.size != null) tooltipLines.push(`大小：${formatFileSize(file.size)}`)
-  if (file.createdAt) tooltipLines.push(`上传时间：${formatTime(file.createdAt)}`)
-
-  return (
-    <div
-      className={
-        'fm-row' +
-        (isDeleted ? ' fm-row-deleted' : '') +
-        (!isDeleted && previewable ? ' fm-row-clickable' : '') +
-        (compact ? ' fm-row-compact' : '')
-      }
-      role={!isDeleted && previewable ? 'button' : undefined}
-      tabIndex={!isDeleted && previewable ? 0 : undefined}
-      onClick={!isDeleted && previewable ? handleRowClick : undefined}
-      onKeyDown={!isDeleted && previewable ? handleKeyDown : undefined}
-    >
-      {/* 图标 */}
-      <div className={`fm-file-icon fm-icon-${getIconType(file.name)}${isDeleted ? ' fm-icon-deleted' : ''}`}>
-        {getIconLabel(file.name)}
-      </div>
-
-      {/* 文件名（含 tooltip） */}
-      <span
-        className={`fm-file-name-wrapper${isDeleted ? ' fm-text-deleted' : ''}`}
-        data-tooltip={tooltipLines.join('\n')}
-      >
-        <span className="fm-file-name">{file.name}</span>
-        {isDeleted && <span className="fm-deleted-badge">已删除</span>}
-      </span>
-
-      {/* 文件大小 */}
-      <span className={`fm-file-size${isDeleted ? ' fm-text-deleted' : ''}`}>
-        {formatFileSize(file.size)}
-      </span>
-
-      {/* 上传时间（紧凑模式隐藏） */}
-      {!compact && (
-        <span className={`fm-file-time${isDeleted ? ' fm-text-deleted' : ''}`}>
-          {formatTime(file.createdAt)}
-        </span>
-      )}
-
-      {/* 操作按钮 */}
-      <div className="fm-actions">
-        {isDeleted ? (
-          <button className="fm-icon-btn fm-restore" title="恢复文件"
-            onClick={(e) => { e.stopPropagation(); onRestore?.(file) }}>
-            ↩
-          </button>
-        ) : (
-          <>
-            {previewable && (
-              <button className="fm-icon-btn fm-preview" title="预览"
-                onClick={(e) => { e.stopPropagation(); onPreview(file) }}>
-                👁
-              </button>
-            )}
-            <button className="fm-icon-btn fm-download" title="下载"
-              onClick={(e) => { e.stopPropagation(); onDownload(file) }}>
-              ↓
-            </button>
-            <button className="fm-icon-btn fm-delete" title="删除"
-              onClick={(e) => { e.stopPropagation(); onDelete?.(file) }}>
-              ✕
-            </button>
-          </>
-        )}
-      </div>
     </div>
   )
 }

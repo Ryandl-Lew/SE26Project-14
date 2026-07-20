@@ -1,8 +1,12 @@
 /**
- * FileManager 组件样式
+ * FileManager 组件样式 — SaaS v2
  *
- * 布局策略：Flexbox 行（非 CSS Grid）
- * 每行按 flex 比例自动适配容器宽度，不会因固定列宽溢出父级卡片。
+ * 布局策略：Flexbox 流式行（非固定宽度 Grid）
+ * - 文件名列为唯一弹性列 (flex: 1; min-width: 0)
+ * - 其他列均为 flex-shrink: 0，防止被挤压
+ * - 操作按钮使用幽灵按钮 (Ghost Button) 模式
+ * - CSS 伪元素 Tooltip 提供文件名悬浮详情
+ * - iOS 风格 Switch Toggle 回收站开关
  */
 
 /* ================================================================
@@ -11,332 +15,87 @@
 
 .fm-root {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 /* ================================================================
-   上传区
+   工具栏
    ================================================================ */
 
-.fm-upload-bar {
+.fm-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
+/* 上传按钮 → 次级线框风格 (Outline) */
 .fm-upload-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 14px;
-  border: 1px solid var(--brand);
-  border-radius: var(--radius);
-  color: #fff;
-  background: var(--brand);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter 0.15s;
-  white-space: nowrap;
-}
-
-.fm-upload-btn:hover  { filter: brightness(0.95); }
-.fm-upload-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
-
-.fm-upload-hint {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-/* ================================================================
-   上传进度条
-   ================================================================ */
-
-.fm-progress-bar {
-  padding: 10px 14px;
-  border: 1px solid var(--brand-soft);
-  border-radius: var(--radius);
-  background: var(--brand-soft);
-}
-
-.fm-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.fm-progress-name {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   color: var(--ink);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: #F8FAFC;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
   white-space: nowrap;
-}
-
-.fm-progress-pct {
-  color: var(--brand);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.fm-progress-track {
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(23, 107, 91, 0.15);
-  overflow: hidden;
-}
-
-.fm-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--brand), var(--brand-2));
-  transition: width 0.25s ease;
-}
-
-/* ================================================================
-   文件列表 — Flexbox 布局
-   ================================================================ */
-
-.fm-file-list {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--paper);
-  /* 不再设 min-width，完全由父容器决定 */
-  min-width: 0;
-}
-
-/*
- * 每一行是 flex 容器。
- * 列分配（从左到右）：
- *   图标       → flex-shrink: 0, 固定宽
- *   文件名     → flex: 1, min-width: 0 (唯一弹性列，自动截断)
- *   文件大小   → flex-shrink: 0, 固定宽
- *   上传时间   → flex-shrink: 0, 固定宽
- *   操作按钮   → flex-shrink: 0, 内容自适应
- */
-.fm-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--line);
-  transition: background 0.12s;
-}
-
-.fm-row:last-child { border-bottom: 0; }
-.fm-row:hover       { background: var(--gray-soft); }
-
-.fm-row-clickable       { cursor: pointer; }
-.fm-row-clickable:hover { background: var(--brand-soft); }
-
-/* 表头行 */
-.fm-row.fm-header {
-  background: #f8faf9;
-  border-bottom: 1px solid var(--line);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-/* ── 各列宽度 & 样式 ── */
-
-/* 图标列：固定宽 */
-.fm-header-icon,
-.fm-file-icon {
   flex-shrink: 0;
 }
 
-.fm-header-icon {
-  width: 28px;          /* 与 .fm-file-icon 等宽，对齐 */
+.fm-upload-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: 0 1px 4px rgba(15, 118, 110, 0.1);
 }
 
-.fm-file-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 5px;
+.fm-upload-btn:active {
+  transform: scale(0.97);
+}
+
+.fm-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.fm-toolbar-hint {
+  color: var(--ink-tertiary);
   font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-}
-
-/* 文件名列：唯一弹性列 */
-.fm-header-name,
-.fm-file-name-wrapper {
   flex: 1;
   min-width: 0;
-}
-
-.fm-header-name {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.fm-file-name-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-}
-
-.fm-file-name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 大小列 */
-.fm-header-size {
-  width: 72px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.fm-file-size {
-  width: 72px;
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* 时间列 */
-.fm-header-time {
-  width: 130px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.fm-file-time {
-  width: 130px;
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* 操作列 */
-.fm-header-actions {
-  flex-shrink: 0;
-  text-align: center;
-}
-
-/* 图标颜色 */
-.fm-icon-pdf    { background: #c83b3b; }
-.fm-icon-image  { background: var(--violet); }
-.fm-icon-excel,
-.fm-icon-csv    { background: var(--green); }
-.fm-icon-zip,
-.fm-icon-generic { background: var(--blue); }
-
 /* ================================================================
-   已删除行
+   iOS 风格 Switch Toggle
    ================================================================ */
 
-.fm-row-deleted       { background: #fafafa; opacity: 0.65; }
-.fm-row-deleted:hover { background: #f3f3f3; opacity: 0.8; }
-
-.fm-text-deleted {
-  text-decoration: line-through;
-  color: var(--muted);
-}
-
-.fm-deleted-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 7px;
-  border-radius: 10px;
-  background: #e0e0e0;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
-.fm-icon-deleted {
-  filter: grayscale(100%);
-  opacity: 0.5;
-}
-
-/* ================================================================
-   操作按钮
-   ================================================================ */
-
-.fm-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
-}
-
-.fm-icon-btn {
+.fm-switch {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: #999;
-  cursor: pointer;
-  transition: all 0.12s;
-  font-size: 14px;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.fm-icon-btn:hover  { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
-.fm-icon-btn:active { transform: scale(0.95); }
-
-.fm-icon-btn.fm-delete:hover  { border-color: var(--red);    color: #fff; background: var(--red); }
-.fm-icon-btn.fm-preview:hover { border-color: var(--violet); color: #fff; background: var(--violet); }
-.fm-icon-btn.fm-download:hover { border-color: var(--brand); color: #fff; background: var(--brand); }
-.fm-icon-btn.fm-restore:hover { border-color: var(--green);  color: #fff; background: var(--green); }
-.fm-icon-btn.fm-restore       { font-size: 15px; }
-
-/* ================================================================
-   空态
-   ================================================================ */
-
-.fm-empty {
-  padding: 36px 14px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* ================================================================
-   Toggle 开关
-   ================================================================ */
-
-.fm-toggle-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   user-select: none;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
-.fm-toggle-input {
+.fm-switch__input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -345,172 +104,466 @@
   white-space: nowrap;
 }
 
-.fm-toggle-track {
+.fm-switch__track {
   position: relative;
   display: inline-block;
-  width: 34px;
-  height: 20px;
-  border-radius: 10px;
-  background: #d0d5d3;
-  transition: background 0.2s ease;
+  width: 36px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--border);
+  transition: background 0.25s ease;
   flex-shrink: 0;
 }
 
-.fm-toggle-input:checked + .fm-toggle-track { background: var(--brand); }
-.fm-toggle-input:disabled + .fm-toggle-track { opacity: 0.5; cursor: not-allowed; }
-
-.fm-toggle-thumb {
+/* 滑块圆点 */
+.fm-switch__track::after {
+  content: '';
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.fm-toggle-input:checked + .fm-toggle-track .fm-toggle-thumb {
+.fm-switch__input:checked + .fm-switch__track {
+  background: var(--brand);
+}
+
+.fm-switch__input:checked + .fm-switch__track::after {
   transform: translateX(14px);
 }
 
-.fm-toggle-text {
-  font-size: 13px;
-  color: var(--muted);
-  white-space: nowrap;
+.fm-switch__input:disabled + .fm-switch__track {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.fm-toggle-input:checked ~ .fm-toggle-text {
+.fm-switch__label {
+  font-size: 12px;
+  color: var(--ink-tertiary);
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.fm-switch__input:checked ~ .fm-switch__label {
   color: var(--brand);
   font-weight: 600;
 }
 
 /* ================================================================
-   Tooltip 气泡（文件名悬浮）
+   上传进度条
    ================================================================ */
 
-.fm-file-name-wrapper {
+.fm-progress {
+  padding: 10px 14px;
+  border: 1px solid var(--brand-soft);
+  border-radius: var(--radius-md);
+  background: var(--brand-soft);
+}
+
+.fm-progress__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.fm-progress__name {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fm-progress__pct {
+  color: var(--brand);
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fm-progress__track {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(15, 118, 110, 0.12);
+  overflow: hidden;
+}
+
+.fm-progress__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--accent));
+  transition: width 0.3s ease;
+}
+
+/* ================================================================
+   空态
+   ================================================================ */
+
+.fm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 14px;
+  text-align: center;
+}
+
+.fm-empty__icon {
+  color: var(--ink-tertiary);
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.fm-empty__text {
+  margin: 0 0 4px;
+  color: var(--ink-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fm-empty__hint {
+  margin: 0;
+  color: var(--ink-tertiary);
+  font-size: 12px;
+}
+
+/* ================================================================
+   文件列表 — Flexbox 流式布局
+   ================================================================ */
+
+.fm-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--paper);
+  min-width: 0;
+}
+
+/* ── 行基类 ── */
+.fm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition-fast);
+}
+
+.fm-row:last-child {
+  border-bottom: 0;
+}
+
+.fm-row:hover {
+  background: var(--app-bg);
+}
+
+.fm-row--clickable {
+  cursor: pointer;
+}
+
+.fm-row--clickable:hover {
+  background: var(--brand-soft);
+}
+
+/* 表头行 */
+.fm-row--header {
+  background: var(--app-bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+}
+
+.fm-row--header:hover {
+  background: var(--app-bg);
+}
+
+/* ── 单元格 (Cell) 基础 ── */
+.fm-cell {
+  display: flex;
+  align-items: center;
+}
+
+.fm-cell--header {
+  white-space: nowrap;
+}
+
+/* ── 列分配 ── */
+
+/* 图标列：固定宽度，不可收缩 */
+.fm-cell--icon {
+  flex-shrink: 0;
+}
+
+.fm-cell--header.fm-cell--icon {
+  width: 28px; /* 对齐 .fm-icon 宽度 */
+}
+
+/* 文件名列：唯一弹性列 */
+.fm-cell--name {
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.fm-name-text {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 大小列：固定宽，右对齐 */
+.fm-cell--size {
+  width: 72px;
+  flex-shrink: 0;
+  color: var(--ink-secondary);
+  font-size: 12px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+/* 时间列：固定宽，右对齐 */
+.fm-cell--time {
+  width: 130px;
+  flex-shrink: 0;
+  color: var(--ink-secondary);
+  font-size: 12px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+/* 操作列：内容自适应，不可收缩 */
+.fm-cell--actions {
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* ================================================================
+   文件图标
+   ================================================================ */
+
+.fm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.fm-icon--pdf    { background: #DC2626; }
+.fm-icon--image  { background: #7C3AED; }
+.fm-icon--excel,
+.fm-icon--csv    { background: #16A34A; }
+.fm-icon--zip,
+.fm-icon--generic { background: #2563EB; }
+
+.fm-icon--deleted {
+  filter: grayscale(100%);
+  opacity: 0.35;
+}
+
+/* ================================================================
+   已删除行
+   ================================================================ */
+
+.fm-row--deleted {
+  background: var(--app-bg);
+  opacity: 0.6;
+}
+
+.fm-row--deleted:hover {
+  background: #F1F5F9;
+  opacity: 0.75;
+}
+
+.fm-text--deleted {
+  text-decoration: line-through;
+  color: var(--ink-tertiary);
+}
+
+.fm-badge--deleted {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--border);
+  color: var(--ink-tertiary);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   操作按钮 — 微型实体方框按钮 (Icon Buttons)
+   默认即带边框，hover 时按语义变色
+   ================================================================ */
+
+.fm-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.fm-action-btn:hover {
+  border-color: var(--ink-tertiary);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.fm-action-btn:active {
+  transform: scale(0.93);
+}
+
+/* 预览 — 悬停变紫 */
+.fm-action-btn--preview:hover {
+  color: #7C3AED;
+  background: #F5F3FF;
+  border-color: #C4B5FD;
+}
+
+/* 下载 — 悬停变品牌青 */
+.fm-action-btn--download:hover {
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-color: #6EE7B7;
+}
+
+/* 删除 — 悬停变柔和红 */
+.fm-action-btn--delete:hover {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: #FECACA;
+}
+
+/* 恢复 — 悬停变柔和绿 */
+.fm-action-btn--restore:hover {
+  color: var(--green);
+  background: var(--green-soft);
+  border-color: #BBF7D0;
+}
+
+/* ================================================================
+   CSS Tooltip (文件名悬浮气泡)
+   ================================================================ */
+
+.fm-cell--name {
   position: relative;
 }
 
-.fm-file-name-wrapper:hover::after {
+.fm-cell--name[data-tooltip]:hover::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
-  background: #333;
+  background: var(--ink);
   color: #fff;
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   line-height: 1.6;
   white-space: pre-line;
   z-index: 200;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   pointer-events: none;
-  max-width: 320px;
+  max-width: 340px;
   word-break: break-all;
+  animation: fm-tooltip-in 0.15s ease;
 }
 
-/* 小三角箭头 */
-.fm-file-name-wrapper:hover::before {
+/* tooltip 小三角 */
+.fm-cell--name[data-tooltip]:hover::before {
   content: '';
   position: absolute;
   bottom: calc(100% + 2px);
-  left: 12px;
+  left: 14px;
   width: 0;
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-top: 6px solid #333;
+  border-top: 6px solid var(--ink);
   z-index: 201;
   pointer-events: none;
+  animation: fm-tooltip-in 0.15s ease;
+}
+
+@keyframes fm-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ================================================================
-   紧凑模式 (compact)
+   紧凑模式 (Compact)
    ================================================================ */
 
-.fm-compact .fm-row {
+.fm-root--compact .fm-row {
   gap: 6px;
   padding: 6px 10px;
 }
 
-.fm-compact .fm-file-size {
-  width: 60px;
+.fm-root--compact .fm-cell--size {
+  width: 56px;
+  font-size: 11px;
 }
 
-.fm-compact .fm-icon-btn {
-  width: 28px;
-  height: 28px;
-  font-size: 13px;
+.fm-root--compact .fm-action-btn {
+  width: 26px;
+  height: 26px;
 }
 
-.fm-compact .fm-upload-btn {
-  min-height: 30px;
+.fm-root--compact .fm-upload-btn {
+  min-height: 28px;
   padding: 0 10px;
   font-size: 12px;
 }
 
-/* ================================================================
-   响应式
-   ================================================================ */
-
-/* 窄屏：隐藏时间列，缩小间距 */
-@media (max-width: 600px) {
-  .fm-row {
-    gap: 6px;
-    padding: 6px 10px;
-  }
-
-  .fm-header-time,
-  .fm-file-time {
-    display: none;
-  }
-
-  .fm-icon-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
-  }
-
-  .fm-toggle-label {
-    margin-left: 0;
-  }
-
-  .fm-modal-container {
-    width: 100vw;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-
-  .fm-modal-img,
-  .fm-modal-iframe {
-    max-height: 70vh;
-  }
+.fm-root--compact .fm-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
 }
 
-/* 极窄屏：列表可横向滚动，保留完整信息 */
-@media (max-width: 400px) {
-  .fm-file-list {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .fm-row {
-    min-width: 340px;
-  }
-
-  .fm-header-time,
-  .fm-file-time {
-    display: block;
-  }
-
-  .fm-upload-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.fm-root--compact .fm-name-text {
+  font-size: 13px;
 }
 
 /* ================================================================
@@ -524,12 +577,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  animation: fm-fade-in 0.2s ease;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  animation: fm-overlay-in 0.2s ease;
 }
 
-@keyframes fm-fade-in {
+@keyframes fm-overlay-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
@@ -539,16 +592,22 @@
   flex-direction: column;
   width: min(94vw, 1100px);
   max-height: 92vh;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-xl);
+  background: var(--paper);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
-  animation: fm-scale-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fm-modal-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fm-scale-in {
-  from { opacity: 0; transform: scale(0.92) translateY(20px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes fm-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .fm-modal-header {
@@ -556,16 +615,16 @@
   align-items: center;
   gap: 12px;
   padding: 12px 18px;
-  border-bottom: 1px solid var(--line);
-  background: #fafbfb;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--app-bg);
   flex-shrink: 0;
 }
 
 .fm-modal-title {
   flex: 1;
   min-width: 0;
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: 14px;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -582,16 +641,16 @@
 .fm-modal-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 6px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: var(--paper);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--ink-secondary);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--transition-fast);
 }
 
 .fm-modal-btn:hover {
@@ -604,19 +663,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--muted);
-  font-size: 18px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #F8FAFC;
+  color: var(--ink-tertiary);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--transition-fast);
 }
 
 .fm-modal-close:hover {
-  border-color: var(--line);
+  border-color: #FECACA;
   color: var(--red);
   background: var(--red-soft);
 }
@@ -627,7 +685,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #1a1a1a;
+  background: #1e1e1e;
   overflow: auto;
 }
 
@@ -643,4 +701,64 @@
   height: 78vh;
   border: none;
   background: #fff;
+}
+
+/* ================================================================
+   响应式
+   ================================================================ */
+
+@media (max-width: 600px) {
+  .fm-row {
+    gap: 6px;
+    padding: 6px 10px;
+  }
+
+  .fm-cell--time {
+    display: none;
+  }
+
+  .fm-cell--header.fm-cell--time {
+    display: none;
+  }
+
+  .fm-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .fm-switch {
+    margin-left: 0;
+  }
+
+  .fm-modal-container {
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .fm-modal-img,
+  .fm-modal-iframe {
+    max-height: 70vh;
+  }
+}
+
+@media (max-width: 400px) {
+  .fm-list {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fm-row {
+    min-width: 320px;
+  }
+
+  .fm-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .fm-switch {
+    margin-left: 0;
+  }
 }

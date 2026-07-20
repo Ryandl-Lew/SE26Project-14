@@ -2,13 +2,14 @@
  * 实验记录 Records
  * 左侧记录目录树 + 右侧选中记录预览；以当前项目为上下文。
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PageHeader, StatusBadge, Surface } from '@/components/ui'
 import RecordTree from '@/components/record/RecordTree'
-import { fetchRecords } from '@/api'
+import { fetchRecords, exportProjectToExcel } from '@/api'
 import { mockProjects } from '@/mocks/data'
 import { useAppStore } from '@/store/appStore'
+import { toast } from '@/utils/toast'
 import './records.css'
 
 export default function RecordsPage() {
@@ -16,6 +17,7 @@ export default function RecordsPage() {
   const { currentProjectId, setCurrentProject } = useAppStore()
   const [records, setRecords] = useState([])
   const [activeId, setActiveId] = useState(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     fetchRecords(currentProjectId).then((list) => {
@@ -25,6 +27,31 @@ export default function RecordsPage() {
   }, [currentProjectId])
 
   const active = records.find((r) => r.id === activeId)
+
+  /* ---------- 导出目录 ---------- */
+  const handleExportDirectory = useCallback(async () => {
+    // 前置校验：必须有选中的项目
+    if (!currentProjectId) {
+      toast('请先选择一个项目', { type: 'error' })
+      return
+    }
+
+    if (isExporting) return
+
+    setIsExporting(true)
+    try {
+      await exportProjectToExcel(currentProjectId)
+      toast('实验记录目录导出成功')
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ??
+        err?.message ??
+        '导出失败，请稍后重试'
+      toast(msg, { type: 'error' })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [currentProjectId, isExporting])
 
   return (
     <section>
@@ -61,7 +88,13 @@ export default function RecordsPage() {
           >
             项目概览
           </button>
-          <button className="secondary-btn">导出目录</button>
+          <button
+            className="secondary-btn"
+            onClick={handleExportDirectory}
+            disabled={isExporting}
+          >
+            {isExporting ? '导出中…' : '导出目录'}
+          </button>
         </div>
       </div>
 

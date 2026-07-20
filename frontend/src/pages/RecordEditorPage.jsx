@@ -3,10 +3,11 @@
  * 三栏：目录大纲 + 主编辑区（表单占位）+ 关联信息。
  * 注意：本阶段仅搭建结构与占位表单，不实现富文本编辑器能力。
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { PageHeader, Surface, Badge } from '@/components/ui'
-import { fetchRecord } from '@/api'
+import { fetchRecord, exportRecord } from '@/api'
+import { toast } from '@/utils/toast'
 import './editor.css'
 
 /** 编辑器左侧目录锚点 */
@@ -27,12 +28,38 @@ export default function RecordEditorPage() {
   const isNew = !recordId
   const [record, setRecord] = useState(null)
   const [activeOutline, setActiveOutline] = useState('基础信息')
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
 
   useEffect(() => {
     if (recordId) fetchRecord(recordId).then(setRecord)
   }, [recordId])
 
   const title = isNew ? '新建实验记录' : record?.title ?? '加载中…'
+
+  /* ---------- 导出 PDF ---------- */
+  const handleExportPdf = useCallback(async () => {
+    // 前置校验：未保存记录无法导出
+    if (isNew || !recordId) {
+      toast('请先保存实验记录后再导出 PDF', { type: 'error' })
+      return
+    }
+
+    if (isExportingPdf) return
+
+    setIsExportingPdf(true)
+    try {
+      await exportRecord(recordId, 'pdf')
+      toast('实验记录 PDF 导出成功')
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ??
+        err?.message ??
+        'PDF 导出失败，请稍后重试'
+      toast(msg, { type: 'error' })
+    } finally {
+      setIsExportingPdf(false)
+    }
+  }, [isNew, recordId, isExportingPdf])
 
   return (
     <section>
@@ -137,7 +164,14 @@ export default function RecordEditorPage() {
           <h2 style={{ marginTop: 18 }}>操作</h2>
           <div className="stack">
             <button className="primary-btn">提交审核</button>
-            <button className="secondary-btn">导出 PDF</button>
+            <button
+              className="secondary-btn"
+              onClick={handleExportPdf}
+              disabled={isNew || isExportingPdf}
+              title={isNew ? '请先保存实验记录' : '导出为 PDF 文件'}
+            >
+              {isExportingPdf ? '导出中…' : '导出 PDF'}
+            </button>
             <button className="secondary-btn">复制为新实验</button>
           </div>
         </aside>

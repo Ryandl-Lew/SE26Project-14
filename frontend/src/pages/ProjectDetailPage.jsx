@@ -108,7 +108,7 @@ export default function ProjectDetailPage() {
             onClick={handleExportExcel}
             disabled={exporting}
           >
-            {exporting ? '⏳ 导出中…' : '📥 导出 Excel'}
+            {exporting ? '导出中…' : '导出 Excel'}
           </button>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function ProjectDetailPage() {
           <p className="muted">
             项目目标：{project.description} 项目标签：{project.tags.join('、')}。
           </p>
-          <div className="table-wrap" style={{ marginTop: 14 }}>
+          <div className="table-wrap" style={{ marginTop: 8 }}>
             <table>
               <thead>
                 <tr>
@@ -173,7 +173,7 @@ export default function ProjectDetailPage() {
             compact
             initialFiles={attachments}
           />
-          <h2 style={{ marginTop: 18 }}>最近动态</h2>
+          <h2 style={{ marginTop: 12 }}>最近动态</h2>
           <div className="stack">
             {activities.map((ac) => (
               <div className="list-item" key={ac.id}>
@@ -188,7 +188,7 @@ export default function ProjectDetailPage() {
         </aside>
       </div>
 
-      <Surface title="项目时间线" style={{ marginTop: 18 }}>
+      <Surface title="项目时间线" style={{ marginTop: 12 }}>
         <div className="stack">
           {timeline.map((item) => (
             <div className="list-item" key={item.id}>
@@ -204,7 +204,7 @@ export default function ProjectDetailPage() {
       <Surface
         title="项目成员"
         extra={<button className="primary-btn">邀请成员</button>}
-        style={{ marginTop: 18 }}
+        style={{ marginTop: 12 }}
       >
         <div className="table-wrap">
           <table>
