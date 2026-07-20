@@ -1,225 +1,217 @@
 package com.bionote.record.service;
 
+import com.bionote.common.api.PageResponse;
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
-import com.bionote.collaboration.entity.RecordVersion;
-import com.bionote.collaboration.repository.RecordVersionRepository;
-import com.bionote.collaboration.service.AuditService;
-import com.bionote.project.service.ProjectAccessService;
-import com.bionote.record.dto.CreateRecordRequest;
-import com.bionote.record.dto.RecordDetailResponse;
-import com.bionote.record.dto.RecordSummaryResponse;
-import com.bionote.record.dto.UpdateRecordRequest;
+import com.bionote.project.entity.Activity;
+import com.bionote.project.ActivityRepository;
+import com.bionote.record.dto.*;
 import com.bionote.record.entity.ExperimentRecord;
 import com.bionote.record.entity.RecordStatus;
+import com.bionote.record.entity.RecordVersion;
 import com.bionote.record.repository.ExperimentRecordRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bionote.record.repository.RecordVersionRepository;
+import com.bionote.security.UserPrincipal;
+import com.bionote.user.entity.User;
+import com.bionote.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 public class RecordService {
 
     private static final Logger log = LoggerFactory.getLogger(RecordService.class);
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    private final ExperimentRecordRepository recordRepository;
-    private final RecordVersionRepository versionRepository;
-    private final RecordCodeGenerator codeGenerator;
-    private final ProjectAccessService accessService;
-    private final AuditService auditService;
-    private final ObjectMapper objectMapper;
+    private final ExperimentRecordRepository experimentRecordRepository;
+    private final RecordVersionRepository recordVersionRepository;
+    private final ActivityRepository activityRepository;
+    private final UserRepository userRepository;
 
-    public RecordService(ExperimentRecordRepository recordRepository,
-                         RecordVersionRepository versionRepository,
-                         RecordCodeGenerator codeGenerator,
-                         ProjectAccessService accessService,
-                         AuditService auditService,
-                         ObjectMapper objectMapper) {
-        this.recordRepository = recordRepository;
-        this.versionRepository = versionRepository;
-        this.codeGenerator = codeGenerator;
-        this.accessService = accessService;
-        this.auditService = auditService;
-        this.objectMapper = objectMapper;
+    public RecordService(ExperimentRecordRepository experimentRecordRepository,
+                         RecordVersionRepository recordVersionRepository,
+                         ActivityRepository activityRepository,
+                         UserRepository userRepository) {
+        this.experimentRecordRepository = experimentRecordRepository;
+        this.recordVersionRepository = recordVersionRepository;
+        this.activityRepository = activityRepository;
+        this.userRepository = userRepository;
     }
 
-    /**
-     * 创建空白或基于模板的实验记录。
-     */
     @Transactional
-    public RecordDetailResponse createRecord(CreateRecordRequest request, String currentUserId) {
-        accessService.requireCanCreateRecord(request.projectId(), currentUserId);
+    public RecordResponse createRecord(RecordCreateRequest request, UserPrincipal principal) {
+        LocalDate experimentDate = LocalDate.parse(request.experimentDate());
+        String code = generateCode();
 
-        String defaultContent = buildDefaultContent(request.templateId());
-        ExperimentRecord record = new ExperimentRecord(
-                codeGenerator.nextCode(),
-                request.projectId(),
-                request.templateId(),
-                request.title(),
-                request.experimentType(),
-                currentUserId,
-                request.experimentDate() != null ? request.experimentDate() : LocalDate.now(),
-                request.location(),
-                defaultContent
-        );
-        ExperimentRecord saved = recordRepository.save(record);
+        ExperimentRecord record = new ExperimentRecord(code, request.projectId(),
+                request.title(), request.experimentType(), principal.id(), experimentDate);
+        if (request.templateId() != null && !request.templateId().isBlank()) {
+            record.setTemplateId(request.templateId());
+        }
+        if (request.location() != null && !request.location().isBlank()) {
+            record.setLocation(request.location());
+        }
+        record.setContentJson("{}");
+        record = experimentRecordRepository.save(record);
 
-        // 写入初始版本快照
-        saveSnapshot(saved, currentUserId, "创建实验记录");
+        RecordVersion version = new RecordVersion(record.getId(), 1L, "{}",
+                principal.id(), "创建实验记录");
+        recordVersionRepository.save(version);
 
-        auditService.logRecord(
-                request.projectId(), currentUserId, "CREATE",
-                saved.getId(), "创建实验记录: " + saved.getTitle());
+        activityRepository.save(new Activity(record.getProjectId(),
+                principal.id(), "CREATE", "RECORD", record.getId(),
+                "创建了实验记录「" + record.getTitle() + "」"));
 
-        log.info("实验记录已创建: id={}, code={}, projectId={}",
-                saved.getId(), saved.getCode(), request.projectId());
-        return RecordDetailResponse.from(saved);
+        log.info("Experiment record created: id={}, code={}, projectId={}, owner={}",
+                record.getId(), code, record.getProjectId(), principal.username());
+        return RecordResponse.from(record, principal.name());
     }
 
-    /**
-     * 获取记录详情（含权限校验）。
-     */
     @Transactional(readOnly = true)
-    public RecordDetailResponse getRecord(String recordId, String currentUserId) {
-        ExperimentRecord record = findRecord(recordId);
-        accessService.requireCanRead(record.getProjectId(), currentUserId);
-        return RecordDetailResponse.from(record);
+    public RecordResponse getRecord(String id) {
+        ExperimentRecord record = experimentRecordRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
+        User owner = userRepository.findById(record.getOwnerId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "记录负责人不存在"));
+        return RecordResponse.from(record, owner.getName());
     }
 
-    /**
-     * 分页查询记录列表。
-     */
     @Transactional(readOnly = true)
-    public Page<RecordSummaryResponse> listRecords(String projectId,
-                                                    RecordStatus status,
-                                                    String ownerId,
-                                                    int page,
-                                                    int size,
-                                                    String currentUserId) {
-        accessService.requireCanRead(projectId, currentUserId);
-        Page<ExperimentRecord> result = recordRepository.searchByProject(
-                projectId, status, ownerId, PageRequest.of(page, size));
-        return result.map(RecordSummaryResponse::from);
-    }
+    public PageResponse<RecordResponse> listRecords(RecordFilter filter) {
+        Pageable pageable = PageRequest.of(filter.page(), filter.size(),
+                Sort.by("updatedAt").descending());
 
-    /**
-     * 更新记录内容（权限 + 版本校验）。
-     */
-    @Transactional
-    public RecordDetailResponse updateRecord(String recordId,
-                                              UpdateRecordRequest request,
-                                              String currentUserId) {
-        ExperimentRecord record = findRecord(recordId);
+        String keyword = (filter.keyword() != null && !filter.keyword().isBlank())
+                ? filter.keyword() : null;
 
-        // 校验状态是否可编辑
-        if (!record.isEditable()) {
-            throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,
-                    "当前状态不可编辑: " + record.getStatus());
+        RecordStatus status = null;
+        if (filter.status() != null && !filter.status().isBlank()) {
+            try {
+                status = RecordStatus.valueOf(filter.status().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR, "无效的记录状态: " + filter.status());
+            }
         }
 
-        // 校验权限
-        accessService.requireCanEditRecord(record.getProjectId(), currentUserId, record.getOwnerId());
+        String ownerId = (filter.ownerId() != null && !filter.ownerId().isBlank())
+                ? filter.ownerId() : null;
 
-        // 版本校验（由 JPA @Version 乐观锁自动处理，此处可提前友好提示）
+        String projectId = (filter.projectId() != null && !filter.projectId().isBlank())
+                ? filter.projectId() : null;
+
+        Page<ExperimentRecord> page = experimentRecordRepository.findFiltered(
+                keyword, status, ownerId, projectId, pageable);
+
+        return PageResponse.from(page, record -> {
+            User owner = userRepository.findById(record.getOwnerId()).orElse(null);
+            String ownerName = owner != null ? owner.getName() : "未知";
+            return RecordResponse.from(record, ownerName);
+        });
+    }
+
+    @Transactional
+    public RecordResponse updateRecord(String id, RecordUpdateRequest request, UserPrincipal principal) {
+        ExperimentRecord record = experimentRecordRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
+
         if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT,
-                    "数据已被其他成员修改，请刷新后重试");
+            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
         }
 
-        record.updateContent(
-                request.title(),
-                request.experimentType(),
-                request.experimentDate(),
-                request.location(),
-                request.contentJson()
-        );
-        ExperimentRecord saved = recordRepository.save(record);
+        record.setTitle(request.title());
+        record.setExperimentType(request.experimentType());
+        record.setExperimentDate(request.experimentDate());
+        if (request.location() != null) {
+            record.setLocation(request.location());
+        }
+        if (request.content() != null) {
+            record.setContentJson(request.content());
+        }
+        record = experimentRecordRepository.save(record);
 
-        // 写入版本快照
-        saveSnapshot(saved, currentUserId, request.changeReason());
+        long nextVersionNo = recordVersionRepository
+                .findByRecordIdOrderByVersionNoDesc(record.getId())
+                .stream()
+                .findFirst()
+                .map(v -> v.getVersionNo() + 1)
+                .orElse(1L);
 
-        auditService.logRecord(
-                saved.getProjectId(), currentUserId, "UPDATE",
-                saved.getId(), "更新记录: " + saved.getTitle());
+        recordVersionRepository.save(new RecordVersion(record.getId(), nextVersionNo,
+                record.getContentJson(), principal.id(), request.changeReason()));
 
-        log.info("实验记录已更新: id={}, version={}", saved.getId(), saved.getVersion());
-        return RecordDetailResponse.from(saved);
+        activityRepository.save(new Activity(record.getProjectId(),
+                principal.id(), "UPDATE", "RECORD", record.getId(),
+                "更新了实验记录"));
+
+        log.info("Experiment record updated: id={}, version={}, by={}",
+                record.getId(), record.getVersion(), principal.username());
+        return RecordResponse.from(record, principal.name());
     }
 
-    /**
-     * 复制为新的实验记录。
-     */
     @Transactional
-    public RecordDetailResponse copyRecord(String recordId,
-                                            String newTitle,
-                                            String currentUserId) {
-        ExperimentRecord source = findRecord(recordId);
-        accessService.requireCanRead(source.getProjectId(), currentUserId);
-        accessService.requireCanCreateRecord(source.getProjectId(), currentUserId);
+    public RecordResponse copyRecord(String id, UserPrincipal principal) {
+        ExperimentRecord source = experimentRecordRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
 
-        ExperimentRecord copy = new ExperimentRecord(
-                codeGenerator.nextCode(),
-                source.getProjectId(),
-                null,
-                newTitle,
-                source.getExperimentType(),
-                currentUserId,
-                LocalDate.now(),
-                source.getLocation(),
-                source.getContentJson()
-        );
-        ExperimentRecord saved = recordRepository.save(copy);
+        String newCode = generateCode();
 
-        saveSnapshot(saved, currentUserId, "从 " + source.getCode() + " 复制创建");
+        ExperimentRecord record = new ExperimentRecord(newCode, source.getProjectId(),
+                source.getTitle() + " (副本)", source.getExperimentType(),
+                principal.id(), source.getExperimentDate());
+        record.setTemplateId(source.getTemplateId());
+        record.setLocation(source.getLocation());
+        record.setContentJson(source.getContentJson());
+        record = experimentRecordRepository.save(record);
 
-        auditService.logRecord(
-                saved.getProjectId(), currentUserId, "COPY",
-                saved.getId(), "从记录 " + source.getCode() + " 复制创建: " + saved.getTitle());
+        recordVersionRepository.save(new RecordVersion(record.getId(), 1L,
+                record.getContentJson(), principal.id(), "复制实验记录"));
 
-        log.info("实验记录已复制: source={}, target={}", source.getId(), saved.getId());
-        return RecordDetailResponse.from(saved);
+        activityRepository.save(new Activity(record.getProjectId(),
+                principal.id(), "COPY", "RECORD", record.getId(),
+                "复制了实验记录，源记录: " + source.getCode()));
+
+        log.info("Experiment record copied: newId={}, sourceId={}, by={}",
+                record.getId(), source.getId(), principal.username());
+        return RecordResponse.from(record, principal.name());
     }
 
-    // ──────────────────────────────────────────────
-    // 内部方法
-    // ──────────────────────────────────────────────
-
-    private ExperimentRecord findRecord(String recordId) {
-        return recordRepository.findById(recordId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在: " + recordId));
-    }
-
-    private String buildDefaultContent(String templateId) {
-        try {
-            return objectMapper.writeValueAsString(Map.of(
-                    "purpose", "",
-                    "materials", java.util.List.of(),
-                    "steps", java.util.List.of(),
-                    "parameters", java.util.List.of(),
-                    "results", java.util.List.of(),
-                    "conclusion", ""
-            ));
-        } catch (JsonProcessingException e) {
-            return "{}";
+    @Transactional(readOnly = true)
+    public List<RecordVersionResponse> getVersions(String recordId) {
+        if (!experimentRecordRepository.existsById(recordId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在");
         }
+        return recordVersionRepository.findByRecordIdOrderByVersionNoDesc(recordId)
+                .stream()
+                .map(RecordVersionResponse::from)
+                .toList();
     }
 
-    private void saveSnapshot(ExperimentRecord record, String changedBy, String changeReason) {
-        try {
-            String snapshot = objectMapper.writeValueAsString(RecordDetailResponse.from(record));
-            versionRepository.save(new RecordVersion(
-                    record.getId(), record.getVersion(), snapshot, changedBy, changeReason));
-        } catch (JsonProcessingException e) {
-            log.warn("版本快照序列化失败: recordId={}", record.getId());
+    @Transactional(readOnly = true)
+    public RecordVersionResponse getVersion(String recordId, Long versionNo) {
+        if (!experimentRecordRepository.existsById(recordId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在");
         }
+        RecordVersion version = recordVersionRepository
+                .findByRecordIdAndVersionNo(recordId, versionNo)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "版本不存在"));
+        return RecordVersionResponse.from(version);
+    }
+
+    private String generateCode() {
+        String datePart = LocalDate.now().format(DATE_FORMAT);
+        int randomPart = RANDOM.nextInt(900) + 100;
+        return "EXP-" + datePart + "-" + randomPart;
     }
 }

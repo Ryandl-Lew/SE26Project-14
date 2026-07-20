@@ -43,10 +43,18 @@ class AuthApiIntegrationTest {
     }
 
     @Test
+    void malformedJwtIsRejected() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .header("Authorization", "Bearer not-a-valid-jwt"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_UNAUTHORIZED"));
+    }
+
+    @Test
     void loginAndRestoreCurrentUser() throws Exception {
         String loginBody = """
                 {
-                  "username": "li",
+                  "identifier": "li",
                   "password": "123456"
                 }
                 """;
@@ -77,7 +85,7 @@ class AuthApiIntegrationTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.fieldErrors.username").exists())
+                .andExpect(jsonPath("$.fieldErrors.identifier").exists())
                 .andExpect(jsonPath("$.fieldErrors.password").exists());
     }
 }

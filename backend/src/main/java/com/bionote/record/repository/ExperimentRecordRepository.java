@@ -7,53 +7,39 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public interface ExperimentRecordRepository extends JpaRepository<ExperimentRecord, String> {
-
-    Optional<ExperimentRecord> findByCode(String code);
-
-    boolean existsByCode(String code);
 
     Page<ExperimentRecord> findByProjectIdOrderByUpdatedAtDesc(String projectId, Pageable pageable);
 
-    Page<ExperimentRecord> findByProjectIdAndStatusOrderByUpdatedAtDesc(
-            String projectId, RecordStatus status, Pageable pageable);
+    Optional<ExperimentRecord> findByIdAndStatusNot(String id, RecordStatus status);
 
-    Page<ExperimentRecord> findByProjectIdAndOwnerIdOrderByUpdatedAtDesc(
-            String projectId, String ownerId, Pageable pageable);
+    @Query("SELECT r FROM ExperimentRecord r WHERE "
+            + "(:keyword IS NULL OR r.title LIKE %:keyword% OR r.code LIKE %:keyword%) AND "
+            + "(:status IS NULL OR r.status = :status) AND "
+            + "(:ownerId IS NULL OR r.ownerId = :ownerId) AND "
+            + "(:projectId IS NULL OR r.projectId = :projectId)")
+    Page<ExperimentRecord> findFiltered(@Param("keyword") String keyword,
+                                        @Param("status") RecordStatus status,
+                                        @Param("ownerId") String ownerId,
+                                        @Param("projectId") String projectId,
+                                        Pageable pageable);
 
-    Page<ExperimentRecord> findByProjectIdAndStatusAndOwnerIdOrderByUpdatedAtDesc(
-            String projectId, RecordStatus status, String ownerId, Pageable pageable);
+    @Query("SELECT COUNT(r) FROM ExperimentRecord r WHERE r.projectId = :projectId AND r.status = :status")
+    long countByProjectIdAndStatus(@Param("projectId") String projectId, @Param("status") RecordStatus status);
 
-    long countByProjectIdAndStatus(String projectId, RecordStatus status);
+    long countByStatusNot(RecordStatus status);
 
-    List<ExperimentRecord> findTop5ByProjectIdOrderByUpdatedAtDesc(String projectId);
+    long countByStatus(RecordStatus status);
 
-    @Query("""
-            SELECT r FROM ExperimentRecord r
-            WHERE r.projectId = :projectId
-              AND (:status IS NULL OR r.status = :status)
-              AND (:ownerId IS NULL OR r.ownerId = :ownerId)
-            ORDER BY r.updatedAt DESC
-            """)
-    Page<ExperimentRecord> searchByProject(
-            @Param("projectId") String projectId,
-            @Param("status") RecordStatus status,
-            @Param("ownerId") String ownerId,
-            Pageable pageable);
+    List<ExperimentRecord> findTop5ByStatusNotOrderByUpdatedAtDesc(RecordStatus status);
 
-    @Query("""
-            SELECT r FROM ExperimentRecord r
-            WHERE r.projectId = :projectId
-              AND r.status IN (:statuses)
-            ORDER BY r.updatedAt DESC
-            """)
-    List<ExperimentRecord> findByProjectIdAndStatusIn(
-            @Param("projectId") String projectId,
-            @Param("statuses") List<RecordStatus> statuses);
+    @Query("SELECT r FROM ExperimentRecord r WHERE "
+            + "(r.status = 'PENDING_REVIEW' AND r.projectId IN "
+            + "  (SELECT pm.projectId FROM ProjectMember pm WHERE pm.userId = :userId)) "
+            + "OR (r.status = 'REJECTED' AND r.ownerId = :userId)")
+    List<ExperimentRecord> findPendingTasks(@Param("userId") String userId);
 }

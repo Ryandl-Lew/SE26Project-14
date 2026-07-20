@@ -37,6 +37,9 @@ public record AttachmentResponse(
         String uploadedBy,
 
         @Schema(description = "上传时间（带时区偏移）", example = "2026-07-14T10:30:00+08:00")
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+
+        @Schema(description = "是否已软删除", example = "false")
+        Boolean deleted
 ) {
 }

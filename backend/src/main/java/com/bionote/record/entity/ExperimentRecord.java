@@ -1,18 +1,17 @@
 package com.bionote.record.entity;
 
 import com.bionote.common.persistence.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import jakarta.persistence.Version;
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "experiment_records")
+@EntityListeners(AuditingEntityListener.class)
 public class ExperimentRecord extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 32)
@@ -31,6 +30,7 @@ public class ExperimentRecord extends BaseEntity {
     private String experimentType;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 32)
     private RecordStatus status;
 
@@ -43,7 +43,7 @@ public class ExperimentRecord extends BaseEntity {
     @Column(length = 255)
     private String location;
 
-    @Column(name = "content_json", nullable = false, length = 20000)
+    @Column(name = "content_json", nullable = false, columnDefinition = "TEXT")
     private String contentJson;
 
     @Version
@@ -56,26 +56,16 @@ public class ExperimentRecord extends BaseEntity {
     protected ExperimentRecord() {
     }
 
-    public ExperimentRecord(String code,
-                            String projectId,
-                            String templateId,
-                            String title,
-                            String experimentType,
-                            String ownerId,
-                            LocalDate experimentDate,
-                            String location,
-                            String contentJson) {
+    public ExperimentRecord(String code, String projectId, String title,
+                            String experimentType, String ownerId, LocalDate experimentDate) {
         this.code = code;
         this.projectId = projectId;
-        this.templateId = templateId;
         this.title = title;
         this.experimentType = experimentType;
         this.ownerId = ownerId;
         this.experimentDate = experimentDate;
-        this.location = location;
-        this.contentJson = contentJson;
         this.status = RecordStatus.DRAFT;
-        this.version = 1L;
+        this.version = 0L;
     }
 
     public String getCode() {
@@ -126,42 +116,35 @@ public class ExperimentRecord extends BaseEntity {
         return archivedAt;
     }
 
-    public void updateContent(String title,
-                              String experimentType,
-                              LocalDate experimentDate,
-                              String location,
-                              String contentJson) {
-        if (title != null && !title.isBlank()) {
-            this.title = title;
-        }
-        if (experimentType != null && !experimentType.isBlank()) {
-            this.experimentType = experimentType;
-        }
-        if (experimentDate != null) {
-            this.experimentDate = experimentDate;
-        }
-        if (location != null) {
-            this.location = location;
-        }
-        if (contentJson != null) {
-            this.contentJson = contentJson;
-        }
+    public void setTemplateId(String templateId) {
+        this.templateId = templateId;
     }
 
-    public void changeStatus(RecordStatus next) {
-        if (!this.status.canTransitionTo(next)) {
-            throw new IllegalStateException(
-                    String.format("状态转换非法: %s -> %s", this.status, next));
-        }
-        this.status = next;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
-    public void archive() {
-        changeStatus(RecordStatus.ARCHIVED);
-        this.archivedAt = Instant.now();
+    public void setExperimentType(String experimentType) {
+        this.experimentType = experimentType;
     }
 
-    public boolean isEditable() {
-        return this.status.canEdit();
+    public void setStatus(RecordStatus status) {
+        this.status = status;
+    }
+
+    public void setExperimentDate(LocalDate experimentDate) {
+        this.experimentDate = experimentDate;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public void setContentJson(String contentJson) {
+        this.contentJson = contentJson;
+    }
+
+    public void setArchivedAt(Instant archivedAt) {
+        this.archivedAt = archivedAt;
     }
 }

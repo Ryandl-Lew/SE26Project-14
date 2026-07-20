@@ -95,15 +95,20 @@ public class LocalStorageService implements StorageService {
     public Resource loadAsResource(String storageKey) {
         Path filePath = resolveSafe(storageKey);
 
-        if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
-            throw new BusinessException(ErrorCode.FILE_NOT_FOUND,
-                    "文件不存在或不可读: " + storageKey);
+        if (!Files.exists(filePath)) {
+            throw new BusinessException(ErrorCode.PHYSICAL_FILE_MISSING,
+                    "物理文件已丢失（数据库记录存在，但磁盘文件缺失）: " + storageKey);
+        }
+
+        if (!Files.isReadable(filePath)) {
+            throw new BusinessException(ErrorCode.PHYSICAL_FILE_MISSING,
+                    "物理文件不可读（可能存在权限问题）: " + storageKey);
         }
 
         try {
             Resource resource = new UrlResource(filePath.toUri());
             if (!resource.exists() || !resource.isReadable()) {
-                throw new BusinessException(ErrorCode.FILE_NOT_FOUND,
+                throw new BusinessException(ErrorCode.PHYSICAL_FILE_MISSING,
                         "文件资源不可用: " + storageKey);
             }
             return resource;

@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 /**
  * 文件附件业务服务，负责附件元数据的生命周期管理。
@@ -21,7 +22,7 @@ import java.time.ZoneOffset;
  * 职责边界：
  * <ul>
  *   <li>与 {@link StorageService} 协作完成文件的物理存取；</li>
- *   <li>维护 {@code attachments} 表的元数据（软删除、查询）；</li>
+ *   <li>维护 {@code attachments} 表的元数据（软删除、查询、恢复）；</li>
  *   <li>将实体转换为前端所需的 {@link AttachmentResponse} DTO。</li>
  * </ul>
  * <p>
@@ -117,15 +118,23 @@ public class FileService {
         Attachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.FILE_NOT_FOUND, "附件不存在或已删除: " + attachmentId));
+
+        // 防御性检查：同一事务内 JPA 一级缓存可能返回已标记删除的实体，
+        // 绕过 @SQLRestriction("deleted = false")。此处显式拦截已软删除记录。
+        if (attachment.getDeleted()) {
+            throw new BusinessException(
+                    ErrorCode.FILE_NOT_FOUND, "附件不存在或已删除: " + attachmentId);
+        }
+
         Resource resource = storageService.loadAsResource(attachment.getStorageKey());
         return new AttachmentDownloadResult(attachment, resource);
     }
 
     /**
-     * 软删除附件。
+     * 软删除附件 — 仅标记 deleted=true，不触碰物理文件。
      * <p>
-     * 当前仅做逻辑删除（{@code deleted = true}），物理文件的清理由后续定时任务
-     * 或异步队列异步处理，避免阻塞 HTTP 响应。
+     * 物理文件的清理由后台定时任务根据过期时间统一处理，
+     * 不在用户触发删除时同步执行，以保障恢复功能可用。
      *
      * @param attachmentId 附件 ID
      */
@@ -136,15 +145,90 @@ public class FileService {
                         ErrorCode.FILE_NOT_FOUND, "附件不存在或已删除: " + attachmentId));
         attachment.markDeleted();
         attachmentRepository.save(attachment);
+        log.info("附件已软删除（物理文件保留待定时清理）: attachmentId={}, storageKey={}",
+                attachmentId, attachment.getStorageKey());
+    }
 
-        // 异步清理物理文件（可选）
-        try {
-            storageService.delete(attachment.getStorageKey());
-        } catch (Exception e) {
-            log.warn("物理文件删除失败，将由定时任务重试: storageKey={}, reason={}",
-                    attachment.getStorageKey(), e.getMessage());
+    /**
+     * 恢复已软删除的附件。
+     * <p>
+     * 使用原生查询绕过 {@code @SQLRestriction} 以找到已删除记录。
+     * 注意：软删除时物理文件可能已被清理，恢复仅恢复元数据；
+     * 若物理文件已被清理，后续下载/预览将返回 404，届时由前端提示。
+     *
+     * @param attachmentId 附件 ID
+     */
+    @Transactional
+    public void restore(String attachmentId) {
+        Attachment attachment = attachmentRepository.findByIdIncludingDeleted(attachmentId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.FILE_NOT_FOUND, "附件不存在: " + attachmentId));
+        if (!attachment.getDeleted()) {
+            throw new BusinessException(ErrorCode.MALFORMED_REQUEST, "附件未被删除，无需恢复");
         }
-        log.info("附件已软删除: attachmentId={}", attachmentId);
+        attachment.markRestored();
+        attachmentRepository.save(attachment);
+        log.info("附件已恢复: attachmentId={}", attachmentId);
+    }
+
+    // ──────────────────────────────────────────────
+    // 列表查询
+    // ──────────────────────────────────────────────
+
+    /**
+     * 查询项目下附件列表。
+     *
+     * @param projectId      项目 ID
+     * @param includeDeleted 是否包含已软删除的附件
+     * @return 附件响应体列表（按创建时间降序）
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> listProjectFiles(String projectId, boolean includeDeleted) {
+        List<Attachment> attachments = includeDeleted
+                ? attachmentRepository.findAllByProjectIdIncludingDeleted(projectId)
+                : attachmentRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
+        return attachments.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * 查询项目下所有未删除的附件列表（兼容旧调用方）。
+     *
+     * @param projectId 项目 ID
+     * @return 附件响应体列表（按创建时间降序）
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> listProjectFiles(String projectId) {
+        return listProjectFiles(projectId, false);
+    }
+
+    /**
+     * 查询实验记录下附件列表。
+     *
+     * @param recordId       实验记录 ID
+     * @param includeDeleted 是否包含已软删除的附件
+     * @return 附件响应体列表（按创建时间降序）
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> listRecordAttachments(String recordId, boolean includeDeleted) {
+        List<Attachment> attachments = includeDeleted
+                ? attachmentRepository.findAllByRecordIdIncludingDeleted(recordId)
+                : attachmentRepository.findByRecordIdOrderByCreatedAtDesc(recordId);
+        return attachments.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * 查询实验记录下所有未删除的附件列表（兼容旧调用方）。
+     *
+     * @param recordId 实验记录 ID
+     * @return 附件响应体列表（按创建时间降序）
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> listRecordAttachments(String recordId) {
+        return listRecordAttachments(recordId, false);
     }
 
     // ──────────────────────────────────────────────
@@ -166,7 +250,8 @@ public class FileService {
                 entity.getUploadedBy(),
                 entity.getCreatedAt() != null
                         ? entity.getCreatedAt().atOffset(ZoneOffset.ofHours(8))
-                        : null
+                        : null,
+                entity.getDeleted()
         );
     }
 

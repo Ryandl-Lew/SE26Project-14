@@ -2,7 +2,7 @@
  * 实验记录相关 API
  * 当前返回 mock 数据；函数签名即未来后端契约。
  */
-import { mockComments, mockRecordDetail, mockRecords } from '@/mocks/data'
+import { mockComments, mockRecordDetail, mockRecords, mockRecordRevisions } from '@/mocks/data'
 import { mockResponse } from './client'
 
 /**
@@ -40,12 +40,24 @@ export function fetchRecordComments(_recordId) {
 }
 
 /**
+ * 获取实验记录的修改追溯（修改人 / 时间 / 内容 / 原因）
+ * @param {string} _recordId
+ * @returns {Promise<import('@/domain/models').AuditEntry[]>}
+ */
+export function fetchRecordRevisions(_recordId) {
+  // TODO: GET /api/records/:id/revisions
+  return mockResponse(mockRecordRevisions)
+}
+
+/**
  * 保存草稿（新建或更新）
- * @param {import('@/domain/models').RecordDraftInput} input
+ * @param {import('@/domain/models').RecordDraftInput & { reason?: string }} input
+ * reason 修改原因：更新已有记录时必填，服务端据此生成修改追溯日志。
  * @returns {Promise<import('@/domain/models').ExperimentRecord>}
  */
 export function saveRecordDraft(input) {
   // TODO: POST /api/records 或 PUT /api/records/:id
+  // TODO: 正文按 Markdown 富文本存储（content 字段），服务端保存渲染所需原文
   return mockResponse({ ...mockRecordDetail, title: input.title })
 }
 

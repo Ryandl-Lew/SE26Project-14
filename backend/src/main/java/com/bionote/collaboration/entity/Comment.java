@@ -1,15 +1,20 @@
 package com.bionote.collaboration.entity;
 
-import com.bionote.common.persistence.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "comments")
-public class Comment extends BaseEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Comment {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false, updatable = false, length = 36)
+    private String id;
 
     @Column(name = "record_id", nullable = false, length = 36)
     private String recordId;
@@ -17,21 +22,28 @@ public class Comment extends BaseEntity {
     @Column(name = "author_id", nullable = false, length = 36)
     private String authorId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private CommentCategory category;
+    @Column(name = "category", nullable = false, length = 64)
+    private String category;
 
-    @Column(nullable = false, length = 4000)
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected Comment() {
     }
 
-    public Comment(String recordId, String authorId, CommentCategory category, String content) {
+    public Comment(String recordId, String authorId, String category, String content) {
         this.recordId = recordId;
         this.authorId = authorId;
         this.category = category;
         this.content = content;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getRecordId() {
@@ -42,11 +54,15 @@ public class Comment extends BaseEntity {
         return authorId;
     }
 
-    public CommentCategory getCategory() {
+    public String getCategory() {
         return category;
     }
 
     public String getContent() {
         return content;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

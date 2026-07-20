@@ -1,76 +1,40 @@
 package com.bionote.common.config;
 
-import com.bionote.collaboration.entity.RecordVersion;
-import com.bionote.collaboration.repository.RecordVersionRepository;
-import com.bionote.project.entity.Project;
-import com.bionote.project.entity.ProjectMember;
-import com.bionote.project.entity.ProjectRole;
-import com.bionote.project.repository.ProjectMemberRepository;
-import com.bionote.project.repository.ProjectRepository;
-import com.bionote.record.entity.ExperimentRecord;
-import com.bionote.record.repository.ExperimentRecordRepository;
-import com.bionote.record.service.RecordCodeGenerator;
 import com.bionote.template.entity.ExperimentTemplate;
 import com.bionote.template.entity.TemplateField;
 import com.bionote.template.repository.ExperimentTemplateRepository;
 import com.bionote.template.repository.TemplateFieldRepository;
 import com.bionote.user.entity.User;
 import com.bionote.user.repository.UserRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 
 @Component
 public class DemoDataInitializer implements ApplicationRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoDataInitializer.class);
-
     private final SeedProperties properties;
     private final UserRepository userRepository;
-    private final ProjectRepository projectRepository;
-    private final ProjectMemberRepository memberRepository;
-    private final ExperimentTemplateRepository templateRepository;
-    private final TemplateFieldRepository templateFieldRepository;
-    private final ExperimentRecordRepository recordRepository;
-    private final RecordVersionRepository versionRepository;
-    private final RecordCodeGenerator recordCodeGenerator;
     private final PasswordEncoder passwordEncoder;
-    private final ObjectMapper objectMapper;
+    private final ExperimentTemplateRepository experimentTemplateRepository;
+    private final TemplateFieldRepository templateFieldRepository;
 
     public DemoDataInitializer(
             SeedProperties properties,
             UserRepository userRepository,
-            ProjectRepository projectRepository,
-            ProjectMemberRepository memberRepository,
-            ExperimentTemplateRepository templateRepository,
-            TemplateFieldRepository templateFieldRepository,
-            ExperimentRecordRepository recordRepository,
-            RecordVersionRepository versionRepository,
-            RecordCodeGenerator recordCodeGenerator,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper
+            ExperimentTemplateRepository experimentTemplateRepository,
+            TemplateFieldRepository templateFieldRepository
     ) {
         this.properties = properties;
         this.userRepository = userRepository;
-        this.projectRepository = projectRepository;
-        this.memberRepository = memberRepository;
-        this.templateRepository = templateRepository;
-        this.templateFieldRepository = templateFieldRepository;
-        this.recordRepository = recordRepository;
-        this.versionRepository = versionRepository;
-        this.recordCodeGenerator = recordCodeGenerator;
         this.passwordEncoder = passwordEncoder;
-        this.objectMapper = objectMapper;
+        this.experimentTemplateRepository = experimentTemplateRepository;
+        this.templateFieldRepository = templateFieldRepository;
     }
 
     @Override
@@ -79,150 +43,81 @@ public class DemoDataInitializer implements ApplicationRunner {
         if (!properties.enabled()) {
             return;
         }
-
-        // 1. 创建用户
-        User li = createUser("li", "李同学", "li@example.com", "李");
-        User wang = createUser("wang", "王同学", "wang@example.com", "王");
-        User zhang = createUser("zhang", "张老师", "pi@example.com", "张");
-
-        // 2. 创建内置模板
-        createPcrTemplate();
-        createElectrophoresisTemplate();
-        createFermentationTemplate();
-
-        // 3. 创建演示项目
-        if (!projectRepository.existsByCode("PRJ2026070001")) {
-            Project project = new Project("PRJ2026070001", "PCR 扩增与克隆实验",
-                    "本项目用于 PCR 扩增 GFP 片段及后续克隆实验", li.getId());
-            projectRepository.save(project);
-
-            memberRepository.save(new ProjectMember(project.getId(), li.getId(), ProjectRole.OWNER));
-            memberRepository.save(new ProjectMember(project.getId(), wang.getId(), ProjectRole.MEMBER));
-            memberRepository.save(new ProjectMember(project.getId(), zhang.getId(), ProjectRole.REVIEWER));
-
-            // 创建演示记录
-            createDemoRecord(project, li, "PCR 扩增 GFP 片段",
-                    "PCR", LocalDate.of(2026, 7, 10), "A203",
-                    buildContent("扩增 GFP 目标片段", "模板 DNA、引物、dNTP、Phusion 聚合酶",
-                            "1. 配制 PCR 反应体系\n2. 设置扩增程序\n3. 琼脂糖凝胶电泳验证",
-                            "退火温度: 58°C, 延伸时间: 30s, 循环数: 30",
-                            "电泳显示约 750bp 清晰条带", "扩增成功，条带大小符合预期"));
-
-            createDemoRecord(project, wang, "质粒酶切验证",
-                    "酶切", LocalDate.of(2026, 7, 12), "B307",
-                    buildContent("验证重组质粒的正确性", "质粒 DNA、EcoRI、HindIII、Buffer",
-                            "1. 配制酶切体系\n2. 37°C 孵育 1h\n3. 电泳检测",
-                            "酶切温度: 37°C, 时间: 60min",
-                            "酶切后可见载体和插入片段两条带", "酶切结果正确，质粒构建成功"));
-
-            log.info("演示数据已初始化");
-        }
+        createUser("li", "李同学", "li@example.com", "李");
+        createUser("wang", "王同学", "wang@example.com", "王");
+        createUser("zhang", "张老师", "pi@example.com", "张");
+        seedTemplates();
     }
 
-    private void createDemoRecord(Project project, User owner, String title, String type,
-                                   LocalDate date, String location, String contentJson) {
-        ExperimentRecord record = new ExperimentRecord(
-                recordCodeGenerator.nextCode(),
-                project.getId(),
-                null,
-                title,
-                type,
-                owner.getId(),
-                date,
-                location,
-                contentJson
-        );
-        recordRepository.save(record);
-
-        // 初始版本快照
-        try {
-            String snapshot = objectMapper.writeValueAsString(Map.of(
-                    "title", title, "type", type, "content", contentJson));
-            versionRepository.save(new RecordVersion(
-                    record.getId(), record.getVersion(), snapshot, owner.getId(), "创建实验记录"));
-        } catch (JsonProcessingException e) {
-            log.warn("版本快照序列化失败");
-        }
-    }
-
-    private void createPcrTemplate() {
-        if (templateRepository.existsByName("PCR 扩增")) {
-            return;
-        }
-        ExperimentTemplate template = new ExperimentTemplate(
-                "PCR 扩增", "分子生物学", "标准 PCR 扩增实验模板", true);
-        templateRepository.save(template);
-
-        templateFieldRepository.saveAll(List.of(
-                new TemplateField(template.getId(), "purpose", "实验目的", "textarea", true, 1),
-                new TemplateField(template.getId(), "materials", "实验材料", "table", true, 2),
-                new TemplateField(template.getId(), "steps", "实验步骤", "textarea", true, 3),
-                new TemplateField(template.getId(), "parameters", "反应参数", "table", false, 4),
-                new TemplateField(template.getId(), "results", "实验结果", "textarea", true, 5),
-                new TemplateField(template.getId(), "conclusion", "实验结论", "textarea", true, 6)
-        ));
-    }
-
-    private void createElectrophoresisTemplate() {
-        if (templateRepository.existsByName("琼脂糖凝胶电泳")) {
-            return;
-        }
-        ExperimentTemplate template = new ExperimentTemplate(
-                "琼脂糖凝胶电泳", "分子生物学", "琼脂糖凝胶电泳检测 DNA 片段", true);
-        templateRepository.save(template);
-
-        templateFieldRepository.saveAll(List.of(
-                new TemplateField(template.getId(), "purpose", "实验目的", "textarea", true, 1),
-                new TemplateField(template.getId(), "gelConcentration", "凝胶浓度", "text", true, 2),
-                new TemplateField(template.getId(), "samples", "样品列表", "table", true, 3),
-                new TemplateField(template.getId(), "voltage", "电泳参数", "table", false, 4),
-                new TemplateField(template.getId(), "results", "电泳结果", "textarea", true, 5),
-                new TemplateField(template.getId(), "conclusion", "实验结论", "textarea", true, 6)
-        ));
-    }
-
-    private void createFermentationTemplate() {
-        if (templateRepository.existsByName("发酵工程")) {
-            return;
-        }
-        ExperimentTemplate template = new ExperimentTemplate(
-                "发酵工程", "发酵工程", "标准发酵工艺实验模板", true);
-        templateRepository.save(template);
-
-        templateFieldRepository.saveAll(List.of(
-                new TemplateField(template.getId(), "purpose", "实验目的", "textarea", true, 1),
-                new TemplateField(template.getId(), "strain", "菌株信息", "text", true, 2),
-                new TemplateField(template.getId(), "medium", "培养基配方", "table", true, 3),
-                new TemplateField(template.getId(), "parameters", "发酵参数", "table", true, 4),
-                new TemplateField(template.getId(), "results", "发酵结果", "textarea", true, 5),
-                new TemplateField(template.getId(), "conclusion", "实验结论", "textarea", true, 6)
-        ));
-    }
-
-    private String buildContent(String purpose, String materials, String steps,
-                                 String parameters, String results, String conclusion) {
-        try {
-            return objectMapper.writeValueAsString(Map.of(
-                    "purpose", purpose,
-                    "materials", List.of(materials),
-                    "steps", List.of(steps),
-                    "parameters", List.of(parameters),
-                    "results", List.of(results),
-                    "conclusion", conclusion
+    private void createUser(
+            String username,
+            String name,
+            String email,
+            String avatarText
+    ) {
+        if (!userRepository.existsByUsernameNormalized(username.toLowerCase(Locale.ROOT))) {
+            userRepository.save(new User(
+                    username,
+                    passwordEncoder.encode("123456"),
+                    name,
+                    email,
+                    avatarText
             ));
-        } catch (JsonProcessingException e) {
-            return "{}";
         }
     }
 
-    private User createUser(String username, String name, String email, String avatarText) {
-        return userRepository.findByUsername(username)
-                .orElseGet(() -> userRepository.save(new User(
-                        username,
-                        passwordEncoder.encode("123456"),
-                        name,
-                        email,
-                        avatarText
-                )));
+    private void seedTemplates() {
+        if (experimentTemplateRepository.count() > 0) {
+            return;
+        }
+
+        ExperimentTemplate pcr = experimentTemplateRepository.save(new ExperimentTemplate(
+                "PCR 扩增", "PCR",
+                "聚合酶链式反应（PCR）用于扩增特定 DNA 片段，是分子生物学中最基础的实验之一。",
+                true, null));
+
+        templateFieldRepository.saveAll(List.of(
+                field(pcr, "purpose", "实验目的", "textarea", true, 1),
+                field(pcr, "templateDna", "模板 DNA", "text", true, 2),
+                field(pcr, "primerInfo", "引物信息", "text", true, 3),
+                field(pcr, "reactionSystem", "反应体系", "table", true, 4),
+                field(pcr, "thermalCycling", "热循环参数", "table", true, 5),
+                field(pcr, "electrophoresis", "电泳结果", "textarea", false, 6),
+                field(pcr, "conclusion", "实验结论", "textarea", false, 7)
+        ));
+
+        ExperimentTemplate gelElectrophoresis = experimentTemplateRepository.save(new ExperimentTemplate(
+                "琼脂糖凝胶电泳", "电泳",
+                "琼脂糖凝胶电泳用于分离和检测 DNA 片段，是分子生物学中最常用的实验技术之一。",
+                true, null));
+
+        templateFieldRepository.saveAll(List.of(
+                field(gelElectrophoresis, "purpose", "实验目的", "textarea", true, 1),
+                field(gelElectrophoresis, "sampleInfo", "样品信息", "text", true, 2),
+                field(gelElectrophoresis, "gelConcentration", "凝胶浓度", "text", true, 3),
+                field(gelElectrophoresis, "voltageTime", "电压与时间", "text", true, 4),
+                field(gelElectrophoresis, "results", "电泳结果", "textarea", true, 5),
+                field(gelElectrophoresis, "conclusion", "实验结论", "textarea", false, 6)
+        ));
+
+        ExperimentTemplate fermentation = experimentTemplateRepository.save(new ExperimentTemplate(
+                "发酵工程", "发酵工程",
+                "发酵工程实验用于微生物培养、发酵条件优化及产物分析。",
+                true, null));
+
+        templateFieldRepository.saveAll(List.of(
+                field(fermentation, "purpose", "实验目的", "textarea", true, 1),
+                field(fermentation, "strainInfo", "菌株信息", "text", true, 2),
+                field(fermentation, "medium", "培养基配方", "table", true, 3),
+                field(fermentation, "cultureConditions", "培养条件", "text", true, 4),
+                field(fermentation, "monitoringData", "监测数据", "table", true, 5),
+                field(fermentation, "results", "实验结果", "textarea", true, 6),
+                field(fermentation, "conclusion", "实验结论", "textarea", false, 7)
+        ));
+    }
+
+    private TemplateField field(ExperimentTemplate template, String key, String label,
+                                String type, boolean required, int sortOrder) {
+        return new TemplateField(template.getId(), key, label, type, required, null, sortOrder);
     }
 }

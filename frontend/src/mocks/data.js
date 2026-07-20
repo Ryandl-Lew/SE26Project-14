@@ -251,34 +251,215 @@ export const mockMembers = [
   {
     user: { id: 'u-001', name: '李同学', email: 'li@example.com', avatarText: '李' },
     role: 'owner',
-    permissionSummary: '可管理项目、成员和全部记录',
+    permissionSummary: '全部权限：管理项目、成员与审核记录',
     joinedAt: '2026-07-01',
-    lastActiveAt: '2026-07-07',
+    lastActiveAt: '2026-07-07 14:32',
   },
   {
     user: { id: 'u-002', name: '王同学', email: 'wang@example.com', avatarText: '王' },
-    role: 'member',
-    permissionSummary: '可查看、可编辑自己的记录',
+    role: 'editor',
+    permissionSummary: '可新建、编辑实验记录，上传附件',
     joinedAt: '2026-07-01',
-    lastActiveAt: '2026-07-07',
+    lastActiveAt: '2026-07-07 09:15',
+  },
+  {
+    user: { id: 'u-004', name: '陈同学', email: 'chen@example.com', avatarText: '陈' },
+    role: 'editor',
+    permissionSummary: '可新建、编辑实验记录，上传附件',
+    joinedAt: '2026-07-02',
+    lastActiveAt: '2026-07-06 18:40',
   },
   {
     user: { id: 'u-003', name: '张老师', email: 'pi@example.com', avatarText: '张' },
-    role: 'reviewer',
-    permissionSummary: '可评论、审核实验记录',
+    role: 'viewer',
+    permissionSummary: '仅查看项目内容与导出报告',
     joinedAt: '2026-07-02',
-    lastActiveAt: '2026-07-07',
+    lastActiveAt: '2026-07-07 13:58',
+  },
+  {
+    user: { id: 'u-005', name: '赵同学', email: 'zhao@example.com', avatarText: '赵' },
+    role: 'pending',
+    permissionSummary: '已申请加入，等待负责人审批',
+    joinedAt: '2026-07-06',
+    lastActiveAt: '2026-07-06 10:02',
   },
 ]
 
+/**
+ * 按项目的成员列表（项目内权限管理的 mock 数据源）
+ * TODO: 后端接入后由 GET /api/projects/:id/members 返回
+ * @type {Record<string, import('@/domain/models').ProjectMember[]>}
+ */
+export const mockMembersByProject = {
+  'p-001': mockMembers,
+  'p-002': [
+    {
+      user: { id: 'u-004', name: '陈同学', email: 'chen@example.com', avatarText: '陈' },
+      role: 'owner',
+      permissionSummary: '全部权限：管理项目、成员与审核记录',
+      joinedAt: '2026-06-20',
+      lastActiveAt: '2026-07-07 11:40',
+    },
+    {
+      user: { id: 'u-001', name: '李同学', email: 'li@example.com', avatarText: '李' },
+      role: 'editor',
+      permissionSummary: '可新建、编辑实验记录，上传附件',
+      joinedAt: '2026-06-21',
+      lastActiveAt: '2026-07-07 11:20',
+    },
+    {
+      user: { id: 'u-003', name: '张老师', email: 'pi@example.com', avatarText: '张' },
+      role: 'viewer',
+      permissionSummary: '仅查看项目内容与导出报告',
+      joinedAt: '2026-06-22',
+      lastActiveAt: '2026-07-05 16:10',
+    },
+  ],
+  'p-003': [
+    {
+      user: { id: 'u-002', name: '王同学', email: 'wang@example.com', avatarText: '王' },
+      role: 'owner',
+      permissionSummary: '全部权限：管理项目、成员与审核记录',
+      joinedAt: '2026-05-10',
+      lastActiveAt: '2026-07-05 17:30',
+    },
+    {
+      user: { id: 'u-001', name: '李同学', email: 'li@example.com', avatarText: '李' },
+      role: 'editor',
+      permissionSummary: '可新建、编辑实验记录，上传附件',
+      joinedAt: '2026-05-10',
+      lastActiveAt: '2026-07-01 09:00',
+    },
+    {
+      user: { id: 'u-005', name: '赵同学', email: 'zhao@example.com', avatarText: '赵' },
+      role: 'viewer',
+      permissionSummary: '仅查看项目内容与导出报告',
+      joinedAt: '2026-05-12',
+      lastActiveAt: '2026-06-30 15:44',
+    },
+  ],
+  'p-004': [
+    {
+      user: { id: 'u-004', name: '陈同学', email: 'chen@example.com', avatarText: '陈' },
+      role: 'owner',
+      permissionSummary: '全部权限：管理项目、成员与审核记录',
+      joinedAt: '2026-05-28',
+      lastActiveAt: '2026-07-05 10:20',
+    },
+    {
+      user: { id: 'u-002', name: '王同学', email: 'wang@example.com', avatarText: '王' },
+      role: 'viewer',
+      permissionSummary: '仅查看项目内容与导出报告',
+      joinedAt: '2026-05-28',
+      lastActiveAt: '2026-07-02 14:12',
+    },
+  ],
+}
+
 /** @type {import('@/domain/models').PermissionMatrixRow[]} */
 export const mockPermissionMatrix = [
-  { permission: '查看项目', values: { owner: 'yes', member: 'yes', reviewer: 'yes', observer: 'yes' } },
-  { permission: '编辑项目信息', values: { owner: 'yes', member: 'no', reviewer: 'no', observer: 'no' } },
-  { permission: '新建实验记录', values: { owner: 'yes', member: 'yes', reviewer: 'optional', observer: 'no' } },
-  { permission: '审核实验记录', values: { owner: 'yes', member: 'no', reviewer: 'yes', observer: 'no' } },
-  { permission: '管理项目成员', values: { owner: 'yes', member: 'no', reviewer: 'no', observer: 'no' } },
-  { permission: '上传项目附件', values: { owner: 'yes', member: 'yes', reviewer: 'optional', observer: 'no' } },
+  { permission: '查看项目内容', values: { owner: 'yes', editor: 'yes', viewer: 'yes', pending: 'no' } },
+  { permission: '编辑项目信息', values: { owner: 'yes', editor: 'no', viewer: 'no', pending: 'no' } },
+  { permission: '新建 / 编辑实验记录', values: { owner: 'yes', editor: 'yes', viewer: 'no', pending: 'no' } },
+  { permission: '审核实验记录', values: { owner: 'yes', editor: 'no', viewer: 'no', pending: 'no' } },
+  { permission: '管理项目成员', values: { owner: 'yes', editor: 'no', viewer: 'no', pending: 'no' } },
+  { permission: '上传项目附件', values: { owner: 'yes', editor: 'yes', viewer: 'no', pending: 'no' } },
+  { permission: '导出项目报告', values: { owner: 'yes', editor: 'yes', viewer: 'yes', pending: 'no' } },
+]
+
+/**
+ * 实验记录修改追溯（mock）
+ * TODO: 后端接入后由 GET /api/records/:id/revisions 返回；
+ * 保存接口需提交「修改原因」，由服务端生成该日志。
+ * @type {import('@/domain/models').AuditEntry[]}
+ */
+export const mockRecordRevisions = [
+  {
+    id: 'rev-1',
+    action: 'update',
+    actorName: '李同学',
+    targetName: '实验结果',
+    changeSummary: '补充 750 bp 目标条带的灰度分析数据，更新结论表述',
+    reason: '电泳图灰度分析完成，补全定量结果',
+    createdAt: '2026-07-07 14:30',
+  },
+  {
+    id: 'rev-2',
+    action: 'reject',
+    actorName: '张老师',
+    targetName: '实验记录',
+    changeSummary: '退回记录：Marker 条带说明缺失，目标条带未标注大小',
+    reason: '结果图缺少 Marker 标注，无法判断条带特异性',
+    createdAt: '2026-07-07 14:00',
+  },
+  {
+    id: 'rev-3',
+    action: 'submit',
+    actorName: '李同学',
+    targetName: '实验记录',
+    changeSummary: '提交审核：正文 2 个分节，附件 2 个',
+    reason: '首次提交，请审核反应体系与电泳结果',
+    createdAt: '2026-07-07 13:30',
+  },
+  {
+    id: 'rev-4',
+    action: 'update',
+    actorName: '李同学',
+    targetName: '反应体系',
+    changeSummary: '修改退火温度 56℃ → 58℃，循环数 32 → 35',
+    reason: '预实验出现非特异性条带，提高退火温度并增加循环数',
+    createdAt: '2026-07-07 10:12',
+  },
+  {
+    id: 'rev-5',
+    action: 'create',
+    actorName: '李同学',
+    targetName: '实验记录',
+    changeSummary: '创建记录草稿：PCR 扩增 GFP 片段',
+    createdAt: '2026-07-07 09:00',
+  },
+]
+
+/**
+ * 项目内容修改追溯（mock）
+ * TODO: 后端接入后由 GET /api/projects/:id/revisions 返回
+ * @type {import('@/domain/models').AuditEntry[]}
+ */
+export const mockProjectRevisions = [
+  {
+    id: 'prev-1',
+    action: 'role_change',
+    actorName: '李同学',
+    targetName: '张老师',
+    changeSummary: '角色由「可编辑成员」调整为「只读成员」',
+    reason: '张老师仅需查看进度，不参与记录编辑',
+    createdAt: '2026-07-06 16:20',
+  },
+  {
+    id: 'prev-2',
+    action: 'update',
+    actorName: '李同学',
+    targetName: '项目描述',
+    changeSummary: '更新项目目标：增加融合蛋白表达条件验证',
+    reason: '与导师讨论后扩展实验范围',
+    createdAt: '2026-07-05 11:08',
+  },
+  {
+    id: 'prev-3',
+    action: 'invite',
+    actorName: '李同学',
+    targetName: '赵同学',
+    changeSummary: '邀请赵同学加入项目（待审核）',
+    createdAt: '2026-07-06 09:40',
+  },
+  {
+    id: 'prev-4',
+    action: 'create',
+    actorName: '李同学',
+    targetName: '项目',
+    changeSummary: '创建项目：GFP 融合蛋白表达项目',
+    createdAt: '2026-07-01 08:30',
+  },
 ]
 
 /** @type {import('@/domain/models').Template[]} */

@@ -1,0 +1,120 @@
+/* RevisionTimeline 修改追溯时间线 */
+.rev-timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rev-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.rev-item:last-child {
+  padding-bottom: 0;
+}
+
+.rev-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.rev-rail::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.rev-item:last-child .rev-rail::before {
+  display: none;
+}
+
+.rev-node {
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin-top: 8px;
+  border-radius: 50%;
+  border: 2.5px solid var(--paper);
+  box-shadow: 0 0 0 2px var(--line-strong);
+  background: var(--faint);
+}
+
+.rev-node.tone-green { background: var(--green); box-shadow: 0 0 0 2px rgba(21, 128, 92, 0.3); }
+.rev-node.tone-blue { background: var(--blue); box-shadow: 0 0 0 2px rgba(36, 112, 216, 0.3); }
+.rev-node.tone-amber { background: var(--amber); box-shadow: 0 0 0 2px rgba(176, 106, 16, 0.3); }
+.rev-node.tone-red { background: var(--red); box-shadow: 0 0 0 2px rgba(199, 67, 67, 0.3); }
+.rev-node.tone-violet { background: var(--violet); box-shadow: 0 0 0 2px rgba(107, 91, 210, 0.3); }
+.rev-node.tone-gray { background: var(--faint); }
+
+.rev-card {
+  min-width: 0;
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.rev-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.rev-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rev-actor {
+  font-weight: 700;
+}
+
+.rev-target {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.rev-time {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rev-summary {
+  margin: 8px 0 0;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+.rev-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 9px 0 0;
+  padding: 8px 11px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--gray-soft);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.rev-reason-label {
+  flex: 0 0 auto;
+  color: var(--amber);
+  font-weight: 700;
+}

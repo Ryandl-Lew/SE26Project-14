@@ -1,17 +1,18 @@
 package com.bionote.project.entity;
 
-import com.bionote.common.persistence.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 
 @Entity
 @Table(name = "project_members")
-public class ProjectMember extends BaseEntity {
+public class ProjectMember {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false, updatable = false, length = 36)
+    private String id;
 
     @Column(name = "project_id", nullable = false, length = 36)
     private String projectId;
@@ -20,14 +21,16 @@ public class ProjectMember extends BaseEntity {
     private String userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "role", nullable = false, length = 32)
     private ProjectRole role;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "member_status", nullable = false, length = 32)
-    private ProjectMemberStatus memberStatus;
+    private MemberStatus memberStatus;
 
-    @Column(name = "joined_at", nullable = false, updatable = false)
+    @Column(name = "joined_at", nullable = false)
     private Instant joinedAt;
 
     @Column(name = "last_active_at")
@@ -36,12 +39,16 @@ public class ProjectMember extends BaseEntity {
     protected ProjectMember() {
     }
 
-    public ProjectMember(String projectId, String userId, ProjectRole role) {
+    public ProjectMember(String projectId, String userId, ProjectRole role, MemberStatus memberStatus) {
         this.projectId = projectId;
         this.userId = userId;
         this.role = role;
-        this.memberStatus = ProjectMemberStatus.ACTIVE;
+        this.memberStatus = memberStatus;
         this.joinedAt = Instant.now();
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getProjectId() {
@@ -56,7 +63,7 @@ public class ProjectMember extends BaseEntity {
         return role;
     }
 
-    public ProjectMemberStatus getMemberStatus() {
+    public MemberStatus getMemberStatus() {
         return memberStatus;
     }
 
@@ -68,19 +75,15 @@ public class ProjectMember extends BaseEntity {
         return lastActiveAt;
     }
 
-    public void changeRole(ProjectRole role) {
+    public void setRole(ProjectRole role) {
         this.role = role;
     }
 
-    public void activate() {
-        this.memberStatus = ProjectMemberStatus.ACTIVE;
+    public void setMemberStatus(MemberStatus memberStatus) {
+        this.memberStatus = memberStatus;
     }
 
-    public void remove() {
-        this.memberStatus = ProjectMemberStatus.REMOVED;
-    }
-
-    public boolean isActive() {
-        return this.memberStatus == ProjectMemberStatus.ACTIVE;
+    public void setLastActiveAt(Instant lastActiveAt) {
+        this.lastActiveAt = lastActiveAt;
     }
 }

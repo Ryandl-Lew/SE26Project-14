@@ -1,15 +1,20 @@
 package com.bionote.collaboration.entity;
 
-import com.bionote.common.persistence.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "reviews")
-public class Review extends BaseEntity {
+@EntityListeners(AuditingEntityListener.class)
+public class Review {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false, updatable = false, length = 36)
+    private String id;
 
     @Column(name = "record_id", nullable = false, length = 36)
     private String recordId;
@@ -17,21 +22,28 @@ public class Review extends BaseEntity {
     @Column(name = "reviewer_id", nullable = false, length = 36)
     private String reviewerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 32)
-    private ReviewDecision decision;
+    @Column(name = "decision", nullable = false, length = 32)
+    private String decision;
 
-    @Column(nullable = false, length = 1000)
+    @Column(name = "reason", nullable = false, length = 1000)
     private String reason;
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     protected Review() {
     }
 
-    public Review(String recordId, String reviewerId, ReviewDecision decision, String reason) {
+    public Review(String recordId, String reviewerId, String decision, String reason) {
         this.recordId = recordId;
         this.reviewerId = reviewerId;
         this.decision = decision;
         this.reason = reason;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getRecordId() {
@@ -42,11 +54,15 @@ public class Review extends BaseEntity {
         return reviewerId;
     }
 
-    public ReviewDecision getDecision() {
+    public String getDecision() {
         return decision;
     }
 
     public String getReason() {
         return reason;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

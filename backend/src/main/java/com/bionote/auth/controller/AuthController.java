@@ -2,6 +2,7 @@ package com.bionote.auth.controller;
 
 import com.bionote.auth.dto.LoginRequest;
 import com.bionote.auth.dto.LoginResponse;
+import com.bionote.auth.dto.RegisterRequest;
 import com.bionote.auth.dto.UserResponse;
 import com.bionote.auth.service.AuthService;
 import com.bionote.common.api.ApiResponse;
@@ -14,7 +15,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -27,9 +30,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "用户名密码登录")
+    @Operation(summary = "用户名或邮箱登录")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.success(authService.login(request));
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "注册账号")
+    public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ApiResponse.success(authService.register(request));
     }
 
     @GetMapping("/me")

@@ -1,28 +1,27 @@
 package com.bionote.collaboration.dto;
 
 import com.bionote.collaboration.entity.Review;
-import com.bionote.collaboration.entity.ReviewDecision;
-import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 
-@Schema(description = "审核记录响应体")
 public record ReviewResponse(
-        @Schema(description = "审核 ID") String id,
-        @Schema(description = "记录 ID") String recordId,
-        @Schema(description = "审核人 ID") String reviewerId,
-        @Schema(description = "审核决定") ReviewDecision decision,
-        @Schema(description = "审核原因") String reason,
-        @Schema(description = "创建时间") OffsetDateTime createdAt
+        String id,
+        String recordId,
+        String reviewerId,
+        String reviewerName,
+        String decision,
+        String reason,
+        Instant createdAt
 ) {
-    public static ReviewResponse from(Review review) {
+    public static ReviewResponse from(Review review, String reviewerName) {
         return new ReviewResponse(
-                review.getId(), review.getRecordId(), review.getReviewerId(),
-                review.getDecision(), review.getReason(),
-                review.getCreatedAt() != null
-                        ? review.getCreatedAt().atOffset(ZoneOffset.ofHours(8))
-                        : null
+                review.getId(),
+                review.getRecordId(),
+                review.getReviewerId(),
+                reviewerName,
+                review.getDecision(),
+                review.getReason(),
+                review.getCreatedAt()
         );
     }
 }
