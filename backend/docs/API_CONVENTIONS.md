@@ -3,7 +3,7 @@
 ## Paths and authentication
 
 - All business endpoints use the `/api/v1` prefix.
-- Public endpoints are limited to login, registration, health checks and OpenAPI resources.
+- Public endpoints are limited to login, health checks and OpenAPI resources.
 - Protected endpoints require `Authorization: Bearer <accessToken>`.
 - Every response includes an `X-Trace-Id` header. Send this ID when reporting a backend error.
 

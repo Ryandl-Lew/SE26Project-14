@@ -62,6 +62,8 @@ CREATE TABLE template_fields (
     required BOOLEAN NOT NULL DEFAULT FALSE,
     config_json TEXT,
     sort_order INT NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
     CONSTRAINT uk_template_fields_key UNIQUE (template_id, field_key),
     CONSTRAINT fk_template_fields_template FOREIGN KEY (template_id) REFERENCES experiment_templates (id)
 );
@@ -99,6 +101,7 @@ CREATE TABLE record_versions (
     changed_by VARCHAR(36) NOT NULL,
     change_reason VARCHAR(500) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
     CONSTRAINT uk_record_versions_number UNIQUE (record_id, version_no),
     CONSTRAINT fk_record_versions_record FOREIGN KEY (record_id) REFERENCES experiment_records (id),
     CONSTRAINT fk_record_versions_user FOREIGN KEY (changed_by) REFERENCES users (id)
@@ -132,6 +135,7 @@ CREATE TABLE comments (
     category VARCHAR(32) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
     CONSTRAINT fk_comments_record FOREIGN KEY (record_id) REFERENCES experiment_records (id),
     CONSTRAINT fk_comments_author FOREIGN KEY (author_id) REFERENCES users (id)
 );
@@ -143,6 +147,7 @@ CREATE TABLE reviews (
     decision VARCHAR(32) NOT NULL,
     reason VARCHAR(1000) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
     CONSTRAINT fk_reviews_record FOREIGN KEY (record_id) REFERENCES experiment_records (id),
     CONSTRAINT fk_reviews_reviewer FOREIGN KEY (reviewer_id) REFERENCES users (id)
 );

@@ -19,7 +19,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-import java.util.Locale;
 
 @Configuration
 @EnableMethodSecurity
@@ -55,7 +54,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/auth/login",
-                                "/api/v1/auth/register",
                                 "/api/v1/health",
                                 "/actuator/health",
                                 "/v3/api-docs/**",
@@ -74,8 +72,7 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService userDetailsService(UserRepository userRepository) {
-        return identifier -> userRepository.findByLoginIdentifier(
-                        identifier.trim().toLowerCase(Locale.ROOT))
+        return username -> userRepository.findByUsername(username)
                 .map(user -> org.springframework.security.core.userdetails.User
                         .withUsername(user.getUsername())
                         .password(user.getPasswordHash())

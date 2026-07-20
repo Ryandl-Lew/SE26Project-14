@@ -5,7 +5,6 @@ import com.bionote.common.web.TraceContext;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -57,11 +56,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLock() {
         return response(ErrorCode.RECORD_VERSION_CONFLICT, "数据已被其他成员修改，请刷新后重试", null);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataConflict() {
-        return response(ErrorCode.DATA_CONFLICT, "数据已存在或违反唯一约束", null);
     }
 
     @ExceptionHandler(Exception.class)

@@ -48,9 +48,16 @@ bionote:
     secret: ${JWT_SECRET:development-only-secret-change-before-deploy-123456789}
     expiration-seconds: ${JWT_EXPIRATION_SECONDS:7200}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   storage:
-    root: ${FILE_STORAGE_ROOT:./storage}
+    upload-dir: ${FILE_STORAGE_ROOT:./storage}
+    allowed-extensions:
+      - jpg
+      - png
+      - pdf
+      - csv
+      - xls
+      - xlsx
   seed:
     enabled: ${SEED_ENABLED:true}
 
