@@ -27,12 +27,6 @@ public record RegisterRequest(
         String name,
 
         @Size(max = 8, message = "头像文字长度不能超过8个字符")
-        String avatarText,
-
-        @Size(max = 128, message = "实验室邀请码长度不能超过128个字符")
-        String labInviteCode,
-
-        @Size(max = 500, message = "申请说明长度不能超过500个字符")
-        String joinMessage
+        String avatarText
 ) {
 }

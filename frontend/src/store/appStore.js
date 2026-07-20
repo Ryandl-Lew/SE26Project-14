@@ -4,11 +4,8 @@
  * 认证相关状态已拆分到 authStore。
  */
 import { create } from 'zustand'
-import { currentLab } from '@/mocks/data'
 
 export const useAppStore = create((set) => ({
-  /** 当前实验室名称 */
-  currentLab,
   /** 顶栏「当前项目」——记录页等以此为上下文 */
   currentProjectId: 'p-001',
   /** 全局搜索关键词 */

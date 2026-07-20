@@ -62,6 +62,6 @@ Use `BusinessException` with an `ErrorCode` for expected failures. Do not throw 
 | 204 | Archive/delete with no response body |
 | 400 | Malformed or invalid request |
 | 401 | Missing, invalid or expired login |
-| 403 | Authenticated but insufficient project or laboratory permission |
+| 403 | Authenticated but insufficient project permission |
 | 404 | Resource not found in the user's accessible scope |
 | 409 | Version conflict or illegal state transition |

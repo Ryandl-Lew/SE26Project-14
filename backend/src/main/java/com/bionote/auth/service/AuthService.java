@@ -3,13 +3,10 @@ package com.bionote.auth.service;
 import com.bionote.auth.dto.LoginRequest;
 import com.bionote.auth.dto.LoginResponse;
 import com.bionote.auth.dto.RegisterRequest;
-import com.bionote.auth.dto.RegisterResponse;
 import com.bionote.auth.dto.UserResponse;
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
 import com.bionote.security.JwtService;
-import com.bionote.laboratory.dto.RegistrationJoinApplicationResponse;
-import com.bionote.laboratory.service.RegistrationInviteApplicationService;
 import com.bionote.user.entity.User;
 import com.bionote.user.entity.UserStatus;
 import com.bionote.user.repository.UserRepository;
@@ -25,18 +22,15 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RegistrationInviteApplicationService registrationInviteApplicationService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            RegistrationInviteApplicationService registrationInviteApplicationService
+            JwtService jwtService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
-        this.registrationInviteApplicationService = registrationInviteApplicationService;
     }
 
     @Transactional(readOnly = true)
@@ -57,12 +51,10 @@ public class AuthService {
     }
 
     @Transactional
-    public RegisterResponse register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         String username = request.username().trim();
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         String name = request.name().trim();
-        String inviteCode = trimToNull(request.labInviteCode());
-        String joinMessage = trimToNull(request.joinMessage());
 
         if (userRepository.existsByUsernameNormalized(username.toLowerCase(Locale.ROOT))) {
             throw new BusinessException(ErrorCode.AUTH_USERNAME_EXISTS, "用户名已被注册");
@@ -73,10 +65,6 @@ public class AuthService {
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "密码编码后不能超过72字节");
         }
-        if (inviteCode == null && joinMessage != null) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "未填写实验室邀请码时不能填写申请说明");
-        }
-
         User user = userRepository.saveAndFlush(new User(
                 username,
                 passwordEncoder.encode(request.password()),
@@ -84,13 +72,7 @@ public class AuthService {
                 email,
                 resolveAvatarText(request.avatarText(), name)
         ));
-
-        RegistrationJoinApplicationResponse joinApplication = inviteCode == null
-                ? null
-                : registrationInviteApplicationService.createForRegistration(
-                        user.getId(), inviteCode, joinMessage);
-
-        return new RegisterResponse(UserResponse.from(user), joinApplication);
+        return UserResponse.from(user);
     }
 
     @Transactional(readOnly = true)

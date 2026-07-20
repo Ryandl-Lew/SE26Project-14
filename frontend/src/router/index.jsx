@@ -4,6 +4,7 @@
  *
  * 路由结构：
  *   /login                 登录页（独立布局，无需登录）
+ *   /register              注册页（独立布局，无需登录）
  *   /                      工作台 Dashboard
  *   /projects              项目管理列表
  *   /projects/:projectId   项目详情（原型 current-project）
@@ -18,6 +19,7 @@
  *   *                      404
  */
 import { createBrowserRouter } from 'react-router-dom'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import AppLayout from '@/components/layout/AppLayout'
 import {
   DashboardPage,
@@ -32,6 +34,7 @@ import {
   AiAssistantPage,
   NotFoundPage,
   LoginPage,
+  RegisterPage,
 } from '@/pages'
 
 export const router = createBrowserRouter([
@@ -40,8 +43,16 @@ export const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
     path: '/',
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'projects', element: <ProjectsPage /> },

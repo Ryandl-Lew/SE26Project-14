@@ -52,6 +52,25 @@
   gap: 16px;
 }
 
+.register-card {
+  max-width: 480px;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.register-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.field-error {
+  color: var(--red);
+  font-size: 12px;
+}
+
 .login-error {
   padding: 10px 14px;
   border-radius: var(--radius);
@@ -65,6 +84,20 @@
   width: 100%;
   height: 44px;
   font-size: 15px;
+  font-weight: 700;
+}
+
+.auth-switch {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-switch a {
+  color: var(--brand);
   font-weight: 700;
 }
 
@@ -84,4 +117,18 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
+}
+
+@media (max-width: 520px) {
+  .login-card {
+    padding: 32px 22px 28px;
+  }
+
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .register-grid .full-width {
+    grid-column: auto;
+  }
 }

@@ -4,12 +4,12 @@
  * 已登录用户自动跳转到首页。
  */
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { Link, useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import './login.css'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -26,13 +26,13 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!username.trim() || !password.trim()) {
-      setError('请输入用户名和密码')
+    if (!identifier.trim() || !password.trim()) {
+      setError('请输入用户名或邮箱和密码')
       return
     }
     setSubmitting(true)
     try {
-      await login({ username: username.trim(), password })
+      await login({ identifier: identifier.trim(), password })
       navigate('/', { replace: true })
     } catch (err) {
       setError(err.message || '登录失败，请重试')
@@ -52,13 +52,13 @@ export default function LoginPage() {
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="field">
-            <label htmlFor="username">用户名</label>
+            <label htmlFor="identifier">用户名或邮箱</label>
             <input
-              id="username"
+              id="identifier"
               type="text"
-              placeholder="请输入用户名"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              placeholder="请输入用户名或邮箱"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
               autoFocus
             />
@@ -87,14 +87,17 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className="auth-switch">
+          <span>还没有账号？</span>
+          <Link to="/register">注册</Link>
+        </div>
+
         <div className="login-hint">
           <p className="muted small">本地测试账号</p>
           <div className="login-accounts">
             <span className="badge gray">li / 123456</span>
             <span className="badge gray">wang / 123456</span>
             <span className="badge gray">zhang / 123456</span>
-            <span className="badge gray">chen / 123456</span>
-            <span className="badge gray">zhao / 123456</span>
           </div>
         </div>
       </div>

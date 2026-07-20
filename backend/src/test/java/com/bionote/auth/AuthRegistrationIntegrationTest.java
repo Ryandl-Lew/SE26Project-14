@@ -1,6 +1,5 @@
 package com.bionote.auth;
 
-import com.bionote.laboratory.service.InviteCodeHasher;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -12,9 +11,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,9 +33,6 @@ class AuthRegistrationIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private InviteCodeHasher inviteCodeHasher;
-
     @Test
     void loginByEmailIsCaseInsensitive() throws Exception {
         mockMvc.perform(post("/api/v1/auth/login")
@@ -61,16 +54,17 @@ class AuthRegistrationIntegrationTest {
     }
 
     @Test
-    void registerWithoutInviteCreatesLoginReadyAccount() throws Exception {
+    void registerCreatesLoginReadyAccount() throws Exception {
         String username = "student_" + shortId();
         String email = username + "@example.com";
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody(username, email, null)))
+                        .content(registerBody(username, email)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.user.username").value(username))
-                .andExpect(jsonPath("$.data.user.email").value(email))
+                .andExpect(jsonPath("$.data.username").value(username))
+                .andExpect(jsonPath("$.data.email").value(email))
+                .andExpect(jsonPath("$.data.systemRole").doesNotExist())
                 .andExpect(jsonPath("$.data.joinApplication").doesNotExist());
 
         String passwordHash = jdbcTemplate.queryForObject(
@@ -91,65 +85,20 @@ class AuthRegistrationIntegrationTest {
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody(username, email, null)))
+                        .content(registerBody(username, email)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody(username.toUpperCase(), "another@example.com", null)))
+                        .content(registerBody(username.toUpperCase(), "another@example.com")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("AUTH_USERNAME_EXISTS"));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody("another_" + shortId(), email.toUpperCase(), null)))
+                        .content(registerBody("another_" + shortId(), email.toUpperCase())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("AUTH_EMAIL_EXISTS"));
-    }
-
-    @Test
-    void invalidInviteRollsBackRegistration() throws Exception {
-        String username = "rollback_" + shortId();
-
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody(username, username + "@example.com", "invalid-code")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("LAB_INVITE_INVALID"));
-
-        Integer userCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, username);
-        assertThat(userCount).isZero();
-    }
-
-    @Test
-    void validInviteCreatesPendingApplicationAndConsumesOneUse() throws Exception {
-        String inviteCode = "invite-" + UUID.randomUUID();
-        TestInvite invite = insertActiveInvite(inviteCode);
-        String username = "invitee_" + shortId();
-
-        mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(registerBody(username, username + "@example.com", inviteCode)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.joinApplication.status").value("PENDING"))
-                .andExpect(jsonPath("$.data.joinApplication.laboratory.id")
-                        .value(invite.laboratoryId()));
-
-        Integer usedCount = jdbcTemplate.queryForObject(
-                "SELECT used_count FROM laboratory_invites WHERE id = ?",
-                Integer.class,
-                invite.inviteId());
-        Integer applicationCount = jdbcTemplate.queryForObject(
-                """
-                SELECT COUNT(*) FROM laboratory_join_applications application
-                JOIN users applicant ON applicant.id = application.user_id
-                WHERE applicant.username = ? AND application.status = 'PENDING'
-                """,
-                Integer.class,
-                username);
-        assertThat(usedCount).isEqualTo(1);
-        assertThat(applicationCount).isEqualTo(1);
     }
 
     @Test
@@ -185,63 +134,16 @@ class AuthRegistrationIntegrationTest {
         ));
     }
 
-    private String registerBody(String username, String email, String inviteCode) throws Exception {
-        Map<String, Object> request = new LinkedHashMap<>();
-        request.put("username", username);
-        request.put("email", email);
-        request.put("password", "password123");
-        request.put("name", "测试用户");
-        if (inviteCode != null) {
-            request.put("labInviteCode", inviteCode);
-            request.put("joinMessage", "申请加入实验室");
-        }
-        return objectMapper.writeValueAsString(request);
-    }
-
-    private TestInvite insertActiveInvite(String inviteCode) {
-        String creatorId = jdbcTemplate.queryForObject(
-                "SELECT id FROM users WHERE username = 'zhang'", String.class);
-        String laboratoryId = UUID.randomUUID().toString();
-        String inviteId = UUID.randomUUID().toString();
-        Instant now = Instant.now();
-
-        jdbcTemplate.update(
-                """
-                INSERT INTO laboratories (
-                    id, code, name, description, status, created_by, version,
-                    created_at, updated_at, archived_at
-                ) VALUES (?, ?, ?, ?, 'ACTIVE', ?, 0, ?, ?, NULL)
-                """,
-                laboratoryId,
-                "LAB-" + shortId(),
-                "认证测试实验室",
-                "认证模块邀请码测试",
-                creatorId,
-                Timestamp.from(now),
-                Timestamp.from(now));
-
-        jdbcTemplate.update(
-                """
-                INSERT INTO laboratory_invites (
-                    id, laboratory_id, code_hash, code_hint, status, expires_at,
-                    max_uses, used_count, created_by, version, created_at, updated_at, revoked_at
-                ) VALUES (?, ?, ?, ?, 'ACTIVE', ?, 3, 0, ?, 0, ?, ?, NULL)
-                """,
-                inviteId,
-                laboratoryId,
-                inviteCodeHasher.hash(inviteCode),
-                "test",
-                Timestamp.from(now.plusSeconds(3600)),
-                creatorId,
-                Timestamp.from(now),
-                Timestamp.from(now));
-        return new TestInvite(laboratoryId, inviteId);
+    private String registerBody(String username, String email) throws Exception {
+        return objectMapper.writeValueAsString(Map.of(
+                "username", username,
+                "email", email,
+                "password", "password123",
+                "name", "测试用户"
+        ));
     }
 
     private String shortId() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 10);
-    }
-
-    private record TestInvite(String laboratoryId, String inviteId) {
     }
 }

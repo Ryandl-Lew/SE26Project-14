@@ -1,9 +1,8 @@
 /**
  * Sidebar 侧边栏导航
- * 品牌区 + 分组导航 + 当前实验室信息。使用 NavLink 高亮当前路由。
+ * 品牌区 + 分组导航。使用 NavLink 高亮当前路由。
  */
 import { NavLink } from 'react-router-dom'
-import { useAppStore } from '@/store/appStore'
 
 /** 导航分组配置 */
 const NAV_SECTIONS = [
@@ -27,8 +26,6 @@ const NAV_SECTIONS = [
 ]
 
 export default function Sidebar() {
-  const currentLab = useAppStore((s) => s.currentLab)
-
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -58,11 +55,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-foot">
-        当前实验室
-        <br />
-        {currentLab}
-      </div>
     </aside>
   )
 }

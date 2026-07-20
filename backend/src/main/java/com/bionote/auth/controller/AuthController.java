@@ -3,7 +3,6 @@ package com.bionote.auth.controller;
 import com.bionote.auth.dto.LoginRequest;
 import com.bionote.auth.dto.LoginResponse;
 import com.bionote.auth.dto.RegisterRequest;
-import com.bionote.auth.dto.RegisterResponse;
 import com.bionote.auth.dto.UserResponse;
 import com.bionote.auth.service.AuthService;
 import com.bionote.common.api.ApiResponse;
@@ -38,8 +37,8 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "注册账号，可选实验室邀请码")
-    public ApiResponse<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+    @Operation(summary = "注册账号")
+    public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ApiResponse.success(authService.register(request));
     }
 

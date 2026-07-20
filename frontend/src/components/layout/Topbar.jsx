@@ -57,7 +57,7 @@ export default function Topbar() {
 
       <div className="top-actions">
         <select
-          className="lab-switcher"
+          className="project-switcher"
           aria-label="当前项目"
           value={currentProjectId}
           onChange={(e) => setCurrentProject(e.target.value)}

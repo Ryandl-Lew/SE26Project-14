@@ -38,11 +38,6 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 32)
     private UserStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(name = "system_role", nullable = false, length = 32)
-    private SystemRole systemRole;
-
     protected User() {
     }
 
@@ -53,24 +48,12 @@ public class User extends BaseEntity {
             String email,
             String avatarText
     ) {
-        this(username, passwordHash, name, email, avatarText, SystemRole.USER);
-    }
-
-    public User(
-            String username,
-            String passwordHash,
-            String name,
-            String email,
-            String avatarText,
-            SystemRole systemRole
-    ) {
         this.username = username;
         this.passwordHash = passwordHash;
         this.name = name;
         this.email = email;
         this.avatarText = avatarText;
         this.status = UserStatus.ACTIVE;
-        this.systemRole = systemRole;
     }
 
     public String getUsername() {
@@ -95,9 +78,5 @@ public class User extends BaseEntity {
 
     public UserStatus getStatus() {
         return status;
-    }
-
-    public SystemRole getSystemRole() {
-        return systemRole;
     }
 }
