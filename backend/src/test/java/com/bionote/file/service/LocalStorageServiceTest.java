@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,6 +18,8 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -64,14 +67,14 @@ class LocalStorageServiceTest {
     @Test
     @DisplayName("store() 正常上传 PDF 文件，返回 UUID 重命名后的 storageKey")
     void testStoreValidFile() throws Exception {
-        byte[] content = "Hello BioNote PDF Content".getBytes(StandardCharsets.UTF_8);
+        byte[] content = validContent("pdf");
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "实验报告.pdf",
                 "application/pdf",
                 content);
 
-        String storageKey = service.store(file);
+        String storageKey = service.store(file).storageKey();
 
         assertThat(storageKey).isNotNull();
         assertThat(storageKey).endsWith(".pdf");
@@ -104,8 +107,8 @@ class LocalStorageServiceTest {
             String expectedExt = originalName.substring(originalName.lastIndexOf('.') + 1);
 
             MockMultipartFile file = new MockMultipartFile(
-                    "file", originalName, mime, "test".getBytes(StandardCharsets.UTF_8));
-            String storageKey = service.store(file);
+                    "file", originalName, mime, validContent(expectedExt));
+            String storageKey = service.store(file).storageKey();
 
             assertThat(storageKey).endsWith("." + expectedExt);
             assertThat(tempDir.resolve(storageKey)).exists();
@@ -168,10 +171,10 @@ class LocalStorageServiceTest {
     @Test
     @DisplayName("loadAsResource() 根据 storageKey 加载已存储的文件")
     void testLoadAsResource() throws Exception {
-        byte[] content = "BioNote Test Content".getBytes(StandardCharsets.UTF_8);
+        byte[] content = validContent("pdf");
         MockMultipartFile file = new MockMultipartFile(
                 "file", "test.pdf", "application/pdf", content);
-        String storageKey = service.store(file);
+        String storageKey = service.store(file).storageKey();
 
         Resource resource = service.loadAsResource(storageKey);
 
@@ -201,8 +204,8 @@ class LocalStorageServiceTest {
     void testDelete() throws Exception {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "to-delete.pdf", "application/pdf",
-                "delete me".getBytes(StandardCharsets.UTF_8));
-        String storageKey = service.store(file);
+                validContent("pdf"));
+        String storageKey = service.store(file).storageKey();
         assertThat(tempDir.resolve(storageKey)).exists();
 
         service.delete(storageKey);
@@ -255,5 +258,32 @@ class LocalStorageServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(e -> ((BusinessException) e).errorCode())
                 .isEqualTo(ErrorCode.ACCESS_DENIED);
+    }
+
+    private static byte[] validContent(String extension) throws IOException {
+        return switch (extension) {
+            case "jpg" -> new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00};
+            case "png" -> new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+            case "pdf" -> "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF"
+                    .getBytes(StandardCharsets.US_ASCII);
+            case "csv" -> "name,value\nPCR,1\n".getBytes(StandardCharsets.UTF_8);
+            case "xls" -> new byte[]{(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+                    (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1};
+            case "xlsx" -> xlsxBytes();
+            default -> throw new IllegalArgumentException(extension);
+        };
+    }
+
+    private static byte[] xlsxBytes() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(output)) {
+            zip.putNextEntry(new ZipEntry("[Content_Types].xml"));
+            zip.write("<Types/>".getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new ZipEntry("xl/workbook.xml"));
+            zip.write("<workbook/>".getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+        return output.toByteArray();
     }
 }

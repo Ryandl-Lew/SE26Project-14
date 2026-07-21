@@ -42,12 +42,15 @@ public class LocalStorageService implements StorageService {
 
     private final Path uploadRoot;
     private final Set<String> allowedExtensions;
+    private final long maxSizeBytes;
+    private final FileContentDetector contentDetector = new FileContentDetector();
 
     public LocalStorageService(FileStorageProperties properties) {
         this.uploadRoot = Paths.get(properties.getUploadDir()).toAbsolutePath().normalize();
         this.allowedExtensions = properties.getAllowedExtensions().stream()
                 .map(ext -> ext.toLowerCase(Locale.ROOT))
                 .collect(Collectors.toUnmodifiableSet());
+        this.maxSizeBytes = properties.getMaxSize().toBytes();
         initStorageDirectory();
     }
 
@@ -65,7 +68,7 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
-    public String store(MultipartFile file) {
+    public StoredFile store(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "上传文件不能为空");
         }
@@ -79,13 +82,21 @@ public class LocalStorageService implements StorageService {
                     "不支持的文件类型: ." + extension + "，允许的类型: " + allowedExtensions);
         }
 
-        String storageKey = UUID.randomUUID().toString() + "." + extension.toLowerCase(Locale.ROOT);
+        if (file.getSize() > maxSizeBytes) {
+            throw new BusinessException(ErrorCode.FILE_TOO_LARGE,
+                    "单个文件不能超过 20 MB");
+        }
+
+        String normalizedExtension = extension.toLowerCase(Locale.ROOT);
+        String detectedMimeType = contentDetector.validateAndDetect(file, normalizedExtension);
+
+        String storageKey = UUID.randomUUID().toString() + "." + normalizedExtension;
         Path targetPath = uploadRoot.resolve(storageKey);
 
         try {
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("文件已存储: {} -> {}", originalFilename, storageKey);
-            return storageKey;
+            return new StoredFile(storageKey, detectedMimeType);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.INTERNAL_ERROR, "文件存储失败: " + e.getMessage());
         }

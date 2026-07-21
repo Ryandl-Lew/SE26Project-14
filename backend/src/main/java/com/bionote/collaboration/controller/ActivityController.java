@@ -13,9 +13,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @RestController
 @RequestMapping("/api/v1/projects/{projectId}/activities")
+@Validated
 @Tag(name = "Activities", description = "项目活动动态")
 public class ActivityController {
 
@@ -29,8 +33,8 @@ public class ActivityController {
     @Operation(summary = "获取项目活动列表（分页）")
     public ApiResponse<PageResponse<ActivityResponse>> listActivities(
             @PathVariable String projectId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @AuthenticationPrincipal UserPrincipal principal) {
         var result = activityQueryService.listActivities(projectId, page, size, principal.id());
         return ApiResponse.success(PageResponse.from(result, r -> r));

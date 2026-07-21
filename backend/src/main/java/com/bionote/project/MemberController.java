@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,11 +25,14 @@ public class MemberController {
 
     @GetMapping
     @Operation(summary = "获取项目成员列表")
-    public ApiResponse<List<MemberResponse>> listMembers(@PathVariable String projectId) {
-        return ApiResponse.success(memberService.listMembers(projectId));
+    public ApiResponse<List<MemberResponse>> listMembers(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(memberService.listMembers(projectId, principal.id()));
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "添加项目成员")
     public ApiResponse<MemberResponse> addMember(@PathVariable String projectId,
                                                  @Valid @RequestBody MemberRequest request,
@@ -46,11 +50,11 @@ public class MemberController {
     }
 
     @DeleteMapping("/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "移除成员")
-    public ApiResponse<Void> removeMember(@PathVariable String projectId,
-                                          @PathVariable String userId,
-                                          @AuthenticationPrincipal UserPrincipal principal) {
+    public void removeMember(@PathVariable String projectId,
+                             @PathVariable String userId,
+                             @AuthenticationPrincipal UserPrincipal principal) {
         memberService.removeMember(projectId, userId, principal);
-        return ApiResponse.success();
     }
 }

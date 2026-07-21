@@ -36,6 +36,7 @@ public class ProjectAccessService {
 
     @Transactional(readOnly = true)
     public ProjectMember requireMember(String projectId, String userId) {
+        requireProject(projectId);
         return memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .filter(member -> member.getMemberStatus() == MemberStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(
@@ -112,6 +113,19 @@ public class ProjectAccessService {
     @Transactional(readOnly = true)
     public List<String> getAccessibleProjectIds(String userId) {
         return memberRepository.findByUserIdAndMemberStatus(userId, MemberStatus.ACTIVE)
+                .stream()
+                .map(ProjectMember::getProjectId)
+                .distinct()
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getAccessibleProjectIdsByRoles(String userId, Set<ProjectRole> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return List.of();
+        }
+        return memberRepository.findByUserIdAndMemberStatusAndRoleIn(
+                        userId, MemberStatus.ACTIVE, roles)
                 .stream()
                 .map(ProjectMember::getProjectId)
                 .distinct()

@@ -35,11 +35,17 @@ public class TemplateField extends BaseEntity {
 
     public TemplateField(String templateId, String fieldKey, String label,
                          String fieldType, boolean required, int sortOrder) {
+        this(templateId, fieldKey, label, fieldType, required, null, sortOrder);
+    }
+
+    public TemplateField(String templateId, String fieldKey, String label,
+                         String fieldType, boolean required, String configJson, int sortOrder) {
         this.templateId = templateId;
         this.fieldKey = fieldKey;
         this.label = label;
         this.fieldType = fieldType;
         this.required = required;
+        this.configJson = configJson;
         this.sortOrder = sortOrder;
     }
 

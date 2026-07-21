@@ -10,9 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,7 +26,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException exception) {
-        return response(exception.errorCode(), exception.getMessage(), null);
+        return response(exception.errorCode(), exception.getMessage(), exception.fieldErrors());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -46,6 +49,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleMalformedBody() {
         return response(ErrorCode.MALFORMED_REQUEST, "请求体格式错误", null);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class})
+    public ResponseEntity<ErrorResponse> handleInvalidParameter(Exception exception) {
+        return response(ErrorCode.VALIDATION_ERROR, "请求参数格式错误", null);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize() {
+        return response(ErrorCode.FILE_TOO_LARGE, "单个文件不能超过 20 MB", null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

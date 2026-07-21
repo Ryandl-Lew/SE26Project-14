@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Schema(description = "搜索结果统一数据结构")
 public record SearchHit(
         @Schema(description = "命中的实体类型",
-                allowableValues = {"PROJECT", "RECORD", "TEMPLATE", "FILE"},
+                allowableValues = {"PROJECT", "RECORD", "TEMPLATE", "ATTACHMENT", "ACTIVITY"},
                 example = "RECORD")
         String entityType,
 

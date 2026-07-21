@@ -5,6 +5,7 @@ import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
 import com.bionote.project.dto.*;
 import com.bionote.project.entity.*;
+import com.bionote.project.service.ProjectAccessService;
 import com.bionote.security.UserPrincipal;
 import com.bionote.user.entity.User;
 import com.bionote.user.repository.UserRepository;
@@ -19,7 +20,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
@@ -33,15 +38,18 @@ public class ProjectService {
     private final MemberRepository memberRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final ProjectAccessService accessService;
 
     public ProjectService(ProjectRepository projectRepository,
                           MemberRepository memberRepository,
                           ActivityRepository activityRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          ProjectAccessService accessService) {
         this.projectRepository = projectRepository;
         this.memberRepository = memberRepository;
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
+        this.accessService = accessService;
     }
 
     @Transactional
@@ -66,16 +74,16 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public ProjectResponse getProject(String id) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在"));
+    public ProjectResponse getProject(String id, String currentUserId) {
+        Project project = accessService.requireProject(id);
+        accessService.requireCanRead(id, currentUserId);
         User owner = userRepository.findById(project.getOwnerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目负责人不存在"));
         return ProjectResponse.from(project, owner.getName());
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProjectResponse> listProjects(ProjectFilter filter) {
+    public PageResponse<ProjectResponse> listProjects(ProjectFilter filter, String currentUserId) {
         Pageable pageable = PageRequest.of(filter.page(), filter.size(),
                 Sort.by("createdAt").descending());
 
@@ -93,26 +101,30 @@ public class ProjectService {
         String ownerId = (filter.ownerId() != null && !filter.ownerId().isBlank())
                 ? filter.ownerId() : null;
 
-        Page<Project> page = projectRepository.findFiltered(keyword, status, ownerId, pageable);
-
-        return PageResponse.from(page, project -> {
-            User owner = userRepository.findById(project.getOwnerId()).orElse(null);
-            String ownerName = owner != null ? owner.getName() : "未知";
-            return ProjectResponse.from(project, ownerName);
-        });
+        Page<Project> page = projectRepository.findFilteredForMember(
+                currentUserId, keyword, status, ownerId, pageable);
+        Map<String, User> owners = loadUsers(page.getContent().stream()
+                .map(Project::getOwnerId).toList());
+        return PageResponse.from(page, project -> ProjectResponse.from(
+                project,
+                owners.containsKey(project.getOwnerId())
+                        ? owners.get(project.getOwnerId()).getName() : "未知"));
     }
 
     @Transactional
     public ProjectResponse updateProject(String id, ProjectUpdateRequest request, UserPrincipal principal) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在"));
+        Project project = accessService.requireProject(id);
+        accessService.requireCanEditProject(id, principal.id());
 
-        requireProjectPermission(project, principal, "编辑项目");
+        if (!project.getVersion().equals(request.version())) {
+            throw new BusinessException(ErrorCode.PROJECT_VERSION_CONFLICT,
+                    "项目已被其他成员修改，请刷新后重试");
+        }
 
         project.setName(request.name());
         String description = request.description() != null ? request.description() : "";
         project.setDescription(description);
-        project = projectRepository.save(project);
+        project = projectRepository.saveAndFlush(project);
 
         Activity activity = new Activity(project.getId(), principal.id(), "UPDATE",
                 "PROJECT", project.getId(), "更新了项目信息");
@@ -123,72 +135,19 @@ public class ProjectService {
     }
 
     @Transactional
-    public ProjectResponse archiveProject(String id, UserPrincipal principal) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在"));
+    public void archiveProject(String id, UserPrincipal principal) {
+        Project project = accessService.requireProject(id);
+        accessService.requireCanEditProject(id, principal.id());
 
         if (project.getStatus() == ProjectStatus.ARCHIVED) {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "项目已归档，无法重复归档");
         }
-
-        if (project.getStatus() == ProjectStatus.IN_PROGRESS) {
-            throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION,
-                    "进行中的项目需要先完成才能归档");
-        }
-
-        if (project.getStatus() == ProjectStatus.COMPLETED) {
-            // 已完成 → 待复核：提交复核申请
-            requireProjectPermission(project, principal, "提交复核");
-            project.setStatus(ProjectStatus.PENDING_REVIEW);
-            project = projectRepository.save(project);
-
-            Activity activity = new Activity(project.getId(), principal.id(), "SUBMIT_REVIEW",
-                    "PROJECT", project.getId(), "提交了项目复核申请");
-            activityRepository.save(activity);
-
-            log.info("Project submitted for review: id={}, by={}", project.getId(), principal.username());
-        } else {
-            // PENDING_REVIEW → ARCHIVED：审核通过并归档
-            requireProjectPermission(project, principal, "归档项目");
-            project.setStatus(ProjectStatus.ARCHIVED);
-            project.setArchivedAt(Instant.now());
-            project = projectRepository.save(project);
-
-            Activity activity = new Activity(project.getId(), principal.id(), "ARCHIVE",
-                    "PROJECT", project.getId(), "归档了项目");
-            activityRepository.save(activity);
-
-            log.info("Project archived: id={}, by={}", project.getId(), principal.username());
-        }
-
-        User owner = userRepository.findById(project.getOwnerId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目负责人不存在"));
-        return ProjectResponse.from(project, owner.getName());
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProjectActivityResponse> getActivities(String projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
-        }
-
-        List<Activity> activities = activityRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
-
-        return activities.stream().map(activity -> {
-            User actor = userRepository.findById(activity.getActorId()).orElse(null);
-            String actorName = actor != null ? actor.getName() : "未知用户";
-            return ProjectActivityResponse.from(activity, actorName);
-        }).toList();
-    }
-
-    private void requireProjectPermission(Project project, UserPrincipal principal, String action) {
-        ProjectMember member = memberRepository.findByProjectIdAndUserId(project.getId(), principal.id())
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCESS_DENIED,
-                        "您不是该项目成员，无权" + action));
-        if (member.getRole() != ProjectRole.OWNER) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED,
-                    "仅项目负责人可以" + action);
-        }
+        project.setStatus(ProjectStatus.ARCHIVED);
+        project.setArchivedAt(Instant.now());
+        projectRepository.saveAndFlush(project);
+        activityRepository.save(new Activity(project.getId(), principal.id(), "ARCHIVE",
+                "PROJECT", project.getId(), "归档了项目"));
+        log.info("Project archived: id={}, by={}", project.getId(), principal.username());
     }
 
     private String generateProjectCode() {
@@ -197,5 +156,11 @@ public class ProjectService {
             sb.append(CODE_CHARS.charAt(RANDOM.nextInt(CODE_CHARS.length())));
         }
         return sb.toString();
+    }
+
+    private Map<String, User> loadUsers(Collection<String> userIds) {
+        return userRepository.findAllById(userIds.stream().distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
     }
 }

@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -97,7 +98,7 @@ class FileControllerIntegrationTest {
                 TEST_PROJECT_CODE,
                 "Integration Test Project",
                 "Created by FileControllerIntegrationTest",
-                "ACTIVE",
+                "IN_PROGRESS",
                 seedUserId,
                 Instant.now(),
                 Instant.now()
@@ -142,7 +143,7 @@ class FileControllerIntegrationTest {
                                     request.setMethod("POST"); // enforce POST for multipart
                                     return request;
                                 }))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("OK"))
                 .andExpect(jsonPath("$.data.originalName").value("实验数据.csv"))
                 .andExpect(jsonPath("$.data.mimeType").value("text/csv"))
@@ -186,7 +187,7 @@ class FileControllerIntegrationTest {
                 "file",
                 "to-be-deleted.pdf",
                 "application/pdf",
-                "PDF content".getBytes(StandardCharsets.UTF_8));
+                "%PDF-1.4\n%%EOF".getBytes(StandardCharsets.US_ASCII));
 
         MvcResult uploadResult = mockMvc.perform(
                         multipart("/api/v1/projects/{projectId}/files", TEST_PROJECT_ID)
@@ -195,15 +196,14 @@ class FileControllerIntegrationTest {
                                     request.setMethod("POST");
                                     return request;
                                 }))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn();
 
         String attachmentId = extractJsonField(uploadResult, "/data/id");
 
         // ---- 软删除 ----
         mockMvc.perform(delete("/api/v1/files/{id}", attachmentId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("OK"));
+                .andExpect(status().isNoContent());
 
         // ---- 再次下载应 404 ----
         mockMvc.perform(get("/api/v1/files/{id}/download", attachmentId))
@@ -264,6 +264,58 @@ class FileControllerIntegrationTest {
                                 }))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_FILE_TYPE"));
+    }
+
+    @Test
+    @DisplayName("伪造 PDF 扩展名或声明 MIME 不一致时返回 400")
+    void testForgedSignatureAndMimeReturn400() throws Exception {
+        MockMultipartFile forgedPdf = new MockMultipartFile(
+                "file", "forged.pdf", "application/pdf",
+                "plain text".getBytes(StandardCharsets.UTF_8));
+        mockMvc.perform(multipart("/api/v1/projects/{projectId}/files", TEST_PROJECT_ID)
+                        .file(forgedPdf))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_FILE_TYPE"));
+
+        MockMultipartFile wrongMime = new MockMultipartFile(
+                "file", "image.png", "application/pdf",
+                new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
+        mockMvc.perform(multipart("/api/v1/projects/{projectId}/files", TEST_PROJECT_ID)
+                        .file(wrongMime))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_FILE_TYPE"));
+    }
+
+    @Test
+    @DisplayName("超过 20 MB 的文件返回 413 FILE_TOO_LARGE")
+    void testOversizedFileReturns413() throws Exception {
+        byte[] oversized = new byte[20 * 1024 * 1024 + 1];
+        java.util.Arrays.fill(oversized, (byte) 'a');
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "too-large.csv", "text/csv", oversized);
+        mockMvc.perform(multipart("/api/v1/projects/{projectId}/files", TEST_PROJECT_ID)
+                        .file(file))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(jsonPath("$.code").value("FILE_TOO_LARGE"));
+    }
+
+    @Test
+    @DisplayName("非项目成员不能下载附件")
+    void testUnauthorizedDownloadReturns403() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "private.csv", "text/csv",
+                "name,value\nsecret,1\n".getBytes(StandardCharsets.UTF_8));
+        MvcResult upload = mockMvc.perform(
+                        multipart("/api/v1/projects/{projectId}/files", TEST_PROJECT_ID).file(file))
+                .andExpect(status().isCreated()).andReturn();
+        String attachmentId = extractJsonField(upload, "/data/id");
+        var wang = userRepository.findByUsername("wang").orElseThrow();
+
+        mockMvc.perform(get("/api/v1/files/{id}/download", attachmentId)
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                new UserPrincipal(wang.getId(), wang.getUsername(), wang.getName()),
+                                null, List.of()))))
+                .andExpect(status().isForbidden());
     }
 
     // ──────────────────────────────────────────────

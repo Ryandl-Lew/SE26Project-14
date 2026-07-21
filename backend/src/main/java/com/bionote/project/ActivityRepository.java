@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+import java.util.Collection;
 
 public interface ActivityRepository extends JpaRepository<Activity, String> {
 
@@ -13,4 +14,7 @@ public interface ActivityRepository extends JpaRepository<Activity, String> {
     Page<Activity> findByProjectIdOrderByCreatedAtDesc(String projectId, Pageable pageable);
 
     List<Activity> findTop10ByProjectIdOrderByCreatedAtDesc(String projectId);
+
+    Page<Activity> findByProjectIdInOrderByCreatedAtDesc(
+            Collection<String> projectIds, Pageable pageable);
 }

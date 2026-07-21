@@ -123,6 +123,68 @@ public class DemoDataInitializer implements ApplicationRunner {
 
             log.info("演示数据已初始化");
         }
+
+        createAdditionalDemoProjects(li, wang, zhang);
+    }
+
+    private void createAdditionalDemoProjects(User li, User wang, User zhang) {
+        if (!projectRepository.existsByCode("PRJ2026070002")) {
+            Project project = new Project("PRJ2026070002", "发酵条件优化项目",
+                    "比较温度、pH 与溶氧对发酵产量的影响",
+                    ProjectStatus.IN_PROGRESS, wang.getId());
+            project = projectRepository.saveAndFlush(project);
+            memberRepository.save(new ProjectMember(
+                    project.getId(), wang.getId(), ProjectRole.OWNER, MemberStatus.ACTIVE));
+            memberRepository.save(new ProjectMember(
+                    project.getId(), li.getId(), ProjectRole.MEMBER, MemberStatus.ACTIVE));
+            memberRepository.save(new ProjectMember(
+                    project.getId(), zhang.getId(), ProjectRole.REVIEWER, MemberStatus.ACTIVE));
+            createDemoRecord(project, wang, "摇瓶发酵预实验", "发酵工程",
+                    LocalDate.of(2026, 7, 13), "发酵实验室",
+                    buildContent("确定基础培养条件", "工程菌、培养基",
+                            "接种后分组培养", "30°C, 200 rpm", "生长正常", "可进入优化实验"));
+            createDemoRecord(project, li, "温度梯度发酵", "发酵工程",
+                    LocalDate.of(2026, 7, 14), "发酵实验室",
+                    buildContent("比较温度影响", "工程菌、培养基",
+                            "设置 25/30/37°C", "pH 7.0", "30°C 组产量最高", "选择 30°C"));
+            createDemoRecord(project, wang, "pH 梯度发酵", "发酵工程",
+                    LocalDate.of(2026, 7, 15), "发酵实验室",
+                    buildContent("比较 pH 影响", "工程菌、缓冲培养基",
+                            "设置 pH 6.0/7.0/8.0", "30°C", "pH 7.0 最优", "确定 pH 7.0"));
+            createDemoRecord(project, li, "溶氧条件验证", "发酵工程",
+                    LocalDate.of(2026, 7, 16), "发酵实验室",
+                    buildContent("验证溶氧条件", "工程菌、培养基",
+                            "比较不同装液量", "30°C, pH 7.0", "低装液量产量较高", "提高通气"));
+        }
+
+        if (!projectRepository.existsByCode("PRJ2026070003")) {
+            Project project = new Project("PRJ2026070003", "凝胶电泳教学验证",
+                    "用于验证不同凝胶浓度对 DNA 片段分辨率的影响",
+                    ProjectStatus.IN_PROGRESS, li.getId());
+            project = projectRepository.saveAndFlush(project);
+            memberRepository.save(new ProjectMember(
+                    project.getId(), li.getId(), ProjectRole.OWNER, MemberStatus.ACTIVE));
+            memberRepository.save(new ProjectMember(
+                    project.getId(), wang.getId(), ProjectRole.OBSERVER, MemberStatus.ACTIVE));
+            memberRepository.save(new ProjectMember(
+                    project.getId(), zhang.getId(), ProjectRole.REVIEWER, MemberStatus.ACTIVE));
+            createDemoRecord(project, li, "1% 琼脂糖凝胶电泳", "电泳",
+                    LocalDate.of(2026, 7, 14), "A203",
+                    buildContent("观察大分子 DNA", "琼脂糖、TAE、Marker",
+                            "制胶、上样、电泳", "120V, 25min", "大分子条带清晰", "适合较大片段"));
+            createDemoRecord(project, li, "1.5% 琼脂糖凝胶电泳", "电泳",
+                    LocalDate.of(2026, 7, 15), "A203",
+                    buildContent("比较分辨率", "琼脂糖、TAE、Marker",
+                            "制胶、上样、电泳", "110V, 30min", "中等片段分离较好", "推荐常规使用"));
+            createDemoRecord(project, li, "2% 琼脂糖凝胶电泳", "电泳",
+                    LocalDate.of(2026, 7, 16), "A203",
+                    buildContent("观察小片段 DNA", "琼脂糖、TAE、Marker",
+                            "制胶、上样、电泳", "100V, 35min", "小片段分离清晰", "适合小片段"));
+            createDemoRecord(project, li, "凝胶浓度对比分析", "数据分析",
+                    LocalDate.of(2026, 7, 17), "A203",
+                    buildContent("汇总电泳结果", "三组凝胶图像",
+                            "比较条带分辨率", "统一曝光参数", "不同浓度各有优势", "按片段大小选浓度"));
+        }
     }
 
     private void createDemoRecord(Project project, User owner, String title, String type,
@@ -211,9 +273,9 @@ public class DemoDataInitializer implements ApplicationRunner {
             return objectMapper.writeValueAsString(Map.of(
                     "purpose", purpose,
                     "materials", List.of(materials),
-                    "steps", List.of(steps),
+                    "steps", steps,
                     "parameters", List.of(parameters),
-                    "results", List.of(results),
+                    "results", results,
                     "conclusion", conclusion
             ));
         } catch (JsonProcessingException e) {

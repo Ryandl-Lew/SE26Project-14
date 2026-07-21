@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 /**
  * 附件仓储，继承 Spring Data JPA 标准 CRUD 能力。
@@ -25,6 +26,8 @@ public interface AttachmentRepository extends JpaRepository<Attachment, String> 
 
     /** 查询某实验记录下所有未删除的附件，按创建时间降序。 */
     List<Attachment> findByRecordIdOrderByCreatedAtDesc(String recordId);
+
+    List<Attachment> findByRecordIdIn(Collection<String> recordIds);
 
     /**
      * 原生查询 — 列出项目下所有附件（含已删除），按创建时间降序。

@@ -3,7 +3,7 @@ package com.bionote.search.controller;
 import com.bionote.common.api.ApiResponse;
 import com.bionote.common.api.PageResponse;
 import com.bionote.search.dto.SearchHit;
-import com.bionote.search.service.SearchService;
+import com.bionote.search.service.DatabaseSearchService;
 import com.bionote.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +12,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  *       若用户无权访问该项目则返回 403。</li>
  * </ul>
  *
- * @see SearchService
+ * @see DatabaseSearchService
  * @see SearchHit
  */
 @RestController
@@ -38,9 +41,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Search", description = "全局搜索与项目内搜索")
 public class SearchController {
 
-    private final SearchService searchService;
+    private final DatabaseSearchService searchService;
 
-    public SearchController(SearchService searchService) {
+    public SearchController(DatabaseSearchService searchService) {
         this.searchService = searchService;
     }
 
@@ -52,8 +55,8 @@ public class SearchController {
     @Operation(
             summary = "全局/项目内搜索",
             description = """
-                    在用户可访问的项目范围内搜索。支持跨项目、实验记录和文件附件进行关键词匹配。
-                    传入 projectId 可限定在指定项目内搜索，不传则搜索所有可访问项目。"""
+                    在用户可访问的项目范围内搜索项目、实验记录、模板和文件附件。
+                    传入 projectId 时还会搜索项目成员活动；不传则搜索所有可访问项目。"""
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -69,7 +72,7 @@ public class SearchController {
     })
     public ApiResponse<PageResponse<SearchHit>> search(
             @Parameter(description = "搜索关键词（必填）", required = true, example = "PCR")
-            @RequestParam @NotBlank
+            @RequestParam @NotBlank @Size(max = 100)
             String keyword,
 
             @Parameter(description = "限定项目 ID（可选，不传则全局搜索）")
@@ -78,11 +81,11 @@ public class SearchController {
 
             @Parameter(description = "页码（0-based）", example = "0")
             @RequestParam(defaultValue = "0")
-            int page,
+            @Min(0) int page,
 
             @Parameter(description = "每页条数", example = "20")
             @RequestParam(defaultValue = "20")
-            int size,
+            @Min(1) @Max(100) int size,
 
             @AuthenticationPrincipal UserPrincipal principal) {
 

@@ -2,7 +2,7 @@ package com.bionote.report.controller;
 
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
-import com.bionote.report.service.ExportService;
+import com.bionote.report.service.ReportExportService;
 import com.bionote.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,22 +33,22 @@ import java.nio.charset.StandardCharsets;
  *
  * <h3>导出格式</h3>
  * <ul>
- *   <li>实验记录 → {@code ?format=pdf}（默认）或 {@code ?format=md}</li>
- *   <li>项目 → {@code ?format=excel}（默认，目前唯一支持）</li>
+ *   <li>实验记录 → {@code ?format=pdf}（默认且当前唯一支持）</li>
+ *   <li>项目 → {@code ?format=md|pdf|excel}（默认 PDF）</li>
  * </ul>
  *
  * 导出服务从真实记录数据生成文件，并在 Service 层校验项目读取权限。
  */
 @RestController
-@RequestMapping("/api/v1/export")
+@RequestMapping("/api/v1")
 @Tag(name = "Export", description = "实验记录与项目数据导出（PDF / Markdown / Excel）")
 public class ExportController {
 
     private static final Logger log = LoggerFactory.getLogger(ExportController.class);
 
-    private final ExportService exportService;
+    private final ReportExportService exportService;
 
-    public ExportController(ExportService exportService) {
+    public ExportController(ReportExportService exportService) {
         this.exportService = exportService;
     }
 
@@ -56,10 +56,10 @@ public class ExportController {
     // 实验记录导出
     // ──────────────────────────────────────────────
 
-    @GetMapping("/records/{recordId}")
+    @GetMapping({"/records/{recordId}/export", "/export/records/{recordId}"})
     @Operation(
             summary = "导出实验记录",
-            description = "将指定实验记录导出为 PDF 或 Markdown 文件。"
+            description = "将指定实验记录导出为包含附件元数据和审核结论的 PDF 文件。"
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -78,7 +78,7 @@ public class ExportController {
 
             @Parameter(description = "导出格式", schema =
             @io.swagger.v3.oas.annotations.media.Schema(
-                    allowableValues = {"pdf", "md"}, defaultValue = "pdf"))
+                    allowableValues = {"pdf"}, defaultValue = "pdf"))
             @RequestParam(defaultValue = "pdf") String format,
 
             @AuthenticationPrincipal UserPrincipal principal,
@@ -87,38 +87,29 @@ public class ExportController {
 
         log.info("导出实验记录: recordId={}, format={}", recordId, format);
 
-        switch (format.toLowerCase()) {
-            case "md" -> {
-                byte[] bytes = exportService.exportRecordToMarkdown(recordId, principal.id());
-                writeResponse(response, bytes,
-                        "record-" + recordId + ".md",
-                        "text/markdown; charset=UTF-8");
-            }
-            case "pdf" -> {
-                byte[] bytes = exportService.exportRecordToPdf(recordId, principal.id());
-                writeResponse(response, bytes,
-                        "record-" + recordId + ".pdf",
-                        MediaType.APPLICATION_PDF_VALUE);
-            }
-            default ->
-                throw new BusinessException(ErrorCode.VALIDATION_ERROR,
-                        "不支持的导出格式: " + format + "（允许值：pdf, md）");
+        if (!"pdf".equalsIgnoreCase(format)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "单记录仅支持 PDF 导出");
         }
+        byte[] bytes = exportService.exportRecordPdf(recordId, principal.id());
+        writeResponse(response, bytes,
+                "record-" + recordId + ".pdf",
+                MediaType.APPLICATION_PDF_VALUE);
     }
 
     // ──────────────────────────────────────────────
     // 项目导出
     // ──────────────────────────────────────────────
 
-    @GetMapping("/projects/{projectId}")
+    @GetMapping({"/projects/{projectId}/export", "/export/projects/{projectId}"})
     @Operation(
-            summary = "导出项目实验记录一览表",
-            description = "将指定项目下的实验记录导出为 Excel 工作簿。"
+            summary = "导出项目报告",
+            description = "将项目、记录、附件元数据和审核结论导出为 Markdown、PDF 或 Excel。"
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "200",
-                    description = "Excel 文件二进制流"),
+                    description = "Markdown、PDF 或 Excel 文件二进制流"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
                     description = "不支持的导出格式"),
@@ -132,8 +123,8 @@ public class ExportController {
 
             @Parameter(description = "导出格式", schema =
             @io.swagger.v3.oas.annotations.media.Schema(
-                    allowableValues = {"excel"}, defaultValue = "excel"))
-            @RequestParam(defaultValue = "excel") String format,
+                    allowableValues = {"md", "pdf", "excel"}, defaultValue = "pdf"))
+            @RequestParam(defaultValue = "pdf") String format,
 
             @AuthenticationPrincipal UserPrincipal principal,
 
@@ -141,15 +132,20 @@ public class ExportController {
 
         log.info("导出项目: projectId={}, format={}", projectId, format);
 
-        if (!"excel".equalsIgnoreCase(format)) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
-                    "不支持的导出格式: " + format + "（允许值：excel）");
+        switch (format.toLowerCase()) {
+            case "md", "markdown" -> writeResponse(response,
+                    exportService.exportProjectMarkdown(projectId, principal.id()),
+                    "project-" + projectId + ".md", "text/markdown; charset=UTF-8");
+            case "pdf" -> writeResponse(response,
+                    exportService.exportProjectPdf(projectId, principal.id()),
+                    "project-" + projectId + ".pdf", MediaType.APPLICATION_PDF_VALUE);
+            case "excel", "xlsx" -> writeResponse(response,
+                    exportService.exportProjectExcel(projectId, principal.id()),
+                    "project-" + projectId + ".xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            default -> throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "不支持的导出格式: " + format + "（允许值：md, pdf, excel）");
         }
-
-        byte[] bytes = exportService.exportProjectToExcel(projectId, principal.id());
-        writeResponse(response, bytes,
-                "project-" + projectId + "-records.xlsx",
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 
     // ──────────────────────────────────────────────
@@ -179,7 +175,9 @@ public class ExportController {
                 .replace("+", "%20");
 
         response.setContentType(contentType);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        if (contentType.startsWith("text/")) {
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        }
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "attachment; filename=\"" + encodedFilename + "\"; " +
                 "filename*=UTF-8''" + encodedFilename);

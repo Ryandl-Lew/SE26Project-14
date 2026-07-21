@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
@@ -65,57 +67,55 @@ public class FileService {
                                                 MultipartFile file,
                                                 String currentUserId) {
         projectAccessService.requireCanUploadFile(projectId, currentUserId);
-        String storageKey = storageService.store(file);
+        StorageService.StoredFile storedFile = storageService.store(file);
         Attachment attachment = new Attachment(
                 projectId,
                 null,                       // 项目级文件无 recordId
-                file.getOriginalFilename(),
-                storageKey,
-                file.getContentType(),
+                resolveOriginalName(file),
+                storedFile.storageKey(),
+                storedFile.detectedMimeType(),
                 file.getSize(),
                 currentUserId
         );
-        Attachment saved = attachmentRepository.save(attachment);
+        Attachment saved = saveWithCompensation(attachment, storedFile.storageKey());
+        registerRollbackCleanup(storedFile.storageKey());
         log.info("项目文件已上传: projectId={}, attachmentId={}, storageKey={}",
-                projectId, saved.getId(), storageKey);
+                projectId, saved.getId(), storedFile.storageKey());
         return toResponse(saved);
     }
 
     /**
      * 上传实验记录附件。
      * <p>
-     * {@code projectId} 参数用于调用方做项目归属校验（当前由 Controller 层完成），
-     * 实体仅存储 {@code recordId} 以遵守数据库 CHECK 约束。
+     * 服务端根据记录查询所属项目并执行权限校验；实体仅存储 {@code recordId}
+     * 以遵守数据库 CHECK 约束。
      *
      * @param recordId      实验记录 ID
-     * @param projectId     所属项目 ID（用于权限校验上下文，暂不落库）
      * @param file          客户端上传的文件
      * @param currentUserId 当前登录用户 ID
      * @return 附件响应体（含下载 URL）
      */
     @Transactional
     public AttachmentResponse uploadRecordAttachment(String recordId,
-                                                     String projectId,
                                                      MultipartFile file,
                                                      String currentUserId) {
         ExperimentRecord record = recordQueryService.requireRecord(recordId);
-        if (!record.getProjectId().equals(projectId)) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "记录不属于指定项目");
-        }
+        String projectId = record.getProjectId();
         projectAccessService.requireCanUploadFile(projectId, currentUserId);
-        String storageKey = storageService.store(file);
+        StorageService.StoredFile storedFile = storageService.store(file);
         Attachment attachment = new Attachment(
                 null,                       // 记录附件无 projectId（遵守 CHECK 约束）
                 recordId,
-                file.getOriginalFilename(),
-                storageKey,
-                file.getContentType(),
+                resolveOriginalName(file),
+                storedFile.storageKey(),
+                storedFile.detectedMimeType(),
                 file.getSize(),
                 currentUserId
         );
-        Attachment saved = attachmentRepository.save(attachment);
+        Attachment saved = saveWithCompensation(attachment, storedFile.storageKey());
+        registerRollbackCleanup(storedFile.storageKey());
         log.info("记录附件已上传: projectId={}, recordId={}, attachmentId={}, storageKey={}",
-                projectId, recordId, saved.getId(), storageKey);
+                projectId, recordId, saved.getId(), storedFile.storageKey());
         return toResponse(saved);
     }
 
@@ -261,11 +261,13 @@ public class FileService {
     }
 
     private void requireCanModify(Attachment attachment, String currentUserId) {
+        String projectId = resolveProjectId(attachment);
+        projectAccessService.requireCanRead(projectId, currentUserId);
         if (currentUserId.equals(attachment.getUploadedBy())) {
             return;
         }
         projectAccessService.requireAnyOf(
-                resolveProjectId(attachment), currentUserId, ProjectRole.OWNER);
+                projectId, currentUserId, ProjectRole.OWNER);
     }
 
     private String resolveProjectId(Attachment attachment) {
@@ -273,6 +275,45 @@ public class FileService {
             return attachment.getProjectId();
         }
         return recordQueryService.requireRecord(attachment.getRecordId()).getProjectId();
+    }
+
+    private Attachment saveWithCompensation(Attachment attachment, String storageKey) {
+        try {
+            return attachmentRepository.saveAndFlush(attachment);
+        } catch (RuntimeException persistenceFailure) {
+            try {
+                storageService.delete(storageKey);
+            } catch (RuntimeException cleanupFailure) {
+                persistenceFailure.addSuppressed(cleanupFailure);
+                log.error("附件元数据保存失败且物理文件补偿删除失败: storageKey={}", storageKey,
+                        cleanupFailure);
+            }
+            throw persistenceFailure;
+        }
+    }
+
+    private void registerRollbackCleanup(String storageKey) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                    try {
+                        storageService.delete(storageKey);
+                    } catch (RuntimeException cleanupFailure) {
+                        log.error("事务回滚后物理文件补偿删除失败: storageKey={}",
+                                storageKey, cleanupFailure);
+                    }
+                }
+            }
+        });
+    }
+
+    private String resolveOriginalName(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        return name == null || name.isBlank() ? "unnamed-file" : name;
     }
 
     // ──────────────────────────────────────────────

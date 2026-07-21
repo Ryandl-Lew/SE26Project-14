@@ -13,8 +13,10 @@ import com.bionote.record.dto.UpdateRecordRequest;
 import com.bionote.record.entity.ExperimentRecord;
 import com.bionote.record.entity.RecordStatus;
 import com.bionote.record.repository.ExperimentRecordRepository;
+import com.bionote.template.service.TemplateContentService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 
 @Service
 public class RecordService {
@@ -36,19 +40,22 @@ public class RecordService {
     private final ProjectAccessService accessService;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final TemplateContentService templateContentService;
 
     public RecordService(ExperimentRecordRepository recordRepository,
                          RecordVersionRepository versionRepository,
                          RecordCodeGenerator codeGenerator,
                          ProjectAccessService accessService,
                          AuditService auditService,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper,
+                         TemplateContentService templateContentService) {
         this.recordRepository = recordRepository;
         this.versionRepository = versionRepository;
         this.codeGenerator = codeGenerator;
         this.accessService = accessService;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
+        this.templateContentService = templateContentService;
     }
 
     /**
@@ -58,7 +65,7 @@ public class RecordService {
     public RecordDetailResponse createRecord(CreateRecordRequest request, String currentUserId) {
         accessService.requireCanCreateRecord(request.projectId(), currentUserId);
 
-        String defaultContent = buildDefaultContent(request.templateId());
+        InitialContent initialContent = buildDefaultContent(request.templateId());
         ExperimentRecord record = new ExperimentRecord(
                 codeGenerator.nextCode(),
                 request.projectId(),
@@ -68,9 +75,10 @@ public class RecordService {
                 currentUserId,
                 request.experimentDate() != null ? request.experimentDate() : LocalDate.now(),
                 request.location(),
-                defaultContent
+                initialContent.contentJson(),
+                initialContent.templateSnapshotJson()
         );
-        ExperimentRecord saved = recordRepository.save(record);
+        ExperimentRecord saved = recordRepository.saveAndFlush(record);
 
         // 写入初始版本快照
         saveSnapshot(saved, currentUserId, "创建实验记录");
@@ -134,6 +142,7 @@ public class RecordService {
                     "数据已被其他成员修改，请刷新后重试");
         }
 
+        validateContentTypes(record, request.contentJson());
         record.updateContent(
                 request.title(),
                 request.experimentType(),
@@ -141,7 +150,7 @@ public class RecordService {
                 request.location(),
                 request.contentJson()
         );
-        ExperimentRecord saved = recordRepository.save(record);
+        ExperimentRecord saved = recordRepository.saveAndFlush(record);
 
         // 写入版本快照
         saveSnapshot(saved, currentUserId, request.changeReason());
@@ -168,15 +177,16 @@ public class RecordService {
         ExperimentRecord copy = new ExperimentRecord(
                 codeGenerator.nextCode(),
                 source.getProjectId(),
-                null,
+                source.getTemplateId(),
                 newTitle,
                 source.getExperimentType(),
                 currentUserId,
                 LocalDate.now(),
                 source.getLocation(),
-                source.getContentJson()
+                source.getContentJson(),
+                source.getTemplateSnapshotJson()
         );
-        ExperimentRecord saved = recordRepository.save(copy);
+        ExperimentRecord saved = recordRepository.saveAndFlush(copy);
 
         saveSnapshot(saved, currentUserId, "从 " + source.getCode() + " 复制创建");
 
@@ -198,18 +208,23 @@ public class RecordService {
                         ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在: " + recordId));
     }
 
-    private String buildDefaultContent(String templateId) {
+    private InitialContent buildDefaultContent(String templateId) {
+        if (templateId != null && !templateId.isBlank()) {
+            TemplateContentService.TemplateContentSnapshot snapshot =
+                    templateContentService.createSnapshot(templateId);
+            return new InitialContent(snapshot.contentJson(), snapshot.templateSnapshotJson());
+        }
         try {
-            return objectMapper.writeValueAsString(Map.of(
+            return new InitialContent(objectMapper.writeValueAsString(Map.of(
                     "purpose", "",
                     "materials", java.util.List.of(),
                     "steps", java.util.List.of(),
                     "parameters", java.util.List.of(),
                     "results", java.util.List.of(),
                     "conclusion", ""
-            ));
+            )), null);
         } catch (JsonProcessingException e) {
-            return "{}";
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "初始化记录内容失败");
         }
     }
 
@@ -219,7 +234,72 @@ public class RecordService {
             versionRepository.save(new RecordVersion(
                     record.getId(), record.getVersion(), snapshot, changedBy, changeReason));
         } catch (JsonProcessingException e) {
-            log.warn("版本快照序列化失败: recordId={}", record.getId());
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "版本快照保存失败: " + record.getId());
         }
+    }
+
+    private void validateContentTypes(ExperimentRecord record, String contentJson) {
+        if (contentJson == null) {
+            return;
+        }
+        JsonNode content;
+        try {
+            content = objectMapper.readTree(contentJson);
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "实验内容不是合法 JSON",
+                    Map.of("contentJson", "必须是合法 JSON"));
+        }
+        if (!content.isObject()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, "实验内容必须是 JSON 对象",
+                    Map.of("contentJson", "必须是 JSON 对象"));
+        }
+        if (record.getTemplateSnapshotJson() == null
+                || record.getTemplateSnapshotJson().isBlank()) {
+            return;
+        }
+
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        try {
+            for (JsonNode field : objectMapper.readTree(record.getTemplateSnapshotJson()).path("fields")) {
+                String key = field.path("fieldKey").asText();
+                JsonNode value = content.get(key);
+                if (value == null || value.isNull()
+                        || (value.isTextual() && value.asText().isBlank())) {
+                    continue;
+                }
+                String type = field.path("fieldType").asText().toLowerCase(Locale.ROOT);
+                boolean valid = switch (type) {
+                    case "table", "image", "sample_picker", "reagent_picker" -> value.isArray();
+                    case "number" -> value.isNumber() || isNumericText(value);
+                    case "text", "textarea", "date" -> value.isTextual();
+                    default -> true;
+                };
+                if (!valid) {
+                    fieldErrors.put(key, field.path("label").asText(key) + "类型不正确");
+                }
+            }
+        } catch (JsonProcessingException exception) {
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR, "模板快照解析失败");
+        }
+        if (!fieldErrors.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "模板字段类型校验失败", fieldErrors);
+        }
+    }
+
+    private boolean isNumericText(JsonNode value) {
+        if (!value.isTextual()) {
+            return false;
+        }
+        try {
+            new java.math.BigDecimal(value.asText());
+            return true;
+        } catch (NumberFormatException exception) {
+            return false;
+        }
+    }
+
+    private record InitialContent(String contentJson, String templateSnapshotJson) {
     }
 }

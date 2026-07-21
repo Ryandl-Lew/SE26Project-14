@@ -40,10 +40,22 @@ public class ExperimentTemplate extends BaseEntity {
         this.version = 0L;
     }
 
+    public ExperimentTemplate(String name, String category, String description,
+                              boolean builtIn, String createdBy) {
+        this(name, category, description, builtIn);
+        this.createdBy = createdBy;
+    }
+
     public String getName() { return name; }
     public String getCategory() { return category; }
     public String getDescription() { return description; }
     public Boolean getBuiltIn() { return builtIn; }
     public Long getVersion() { return version; }
     public String getCreatedBy() { return createdBy; }
+
+    public void update(String name, String category, String description) {
+        this.name = name;
+        this.category = category;
+        this.description = description;
+    }
 }

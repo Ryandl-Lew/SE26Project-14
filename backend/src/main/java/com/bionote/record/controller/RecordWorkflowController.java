@@ -8,10 +8,12 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -43,6 +45,15 @@ public class RecordWorkflowController {
         return ApiResponse.success();
     }
 
+    @PostMapping("/supplement")
+    @Operation(summary = "退回后开始补充（REJECTED -> SUPPLEMENT）")
+    public ApiResponse<Void> supplementRecord(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        workflowService.supplementRecord(id, principal.id());
+        return ApiResponse.success();
+    }
+
     @PostMapping("/review")
     @Operation(summary = "审核通过或退回（PENDING_REVIEW -> COMPLETED/REJECTED）")
     public ApiResponse<Void> reviewRecord(
@@ -55,11 +66,11 @@ public class RecordWorkflowController {
     }
 
     @PostMapping("/archive")
-    @Operation(summary = "归档记录（任意状态 -> ARCHIVED）")
-    public ApiResponse<Void> archiveRecord(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "归档记录（DRAFT/IN_PROGRESS/COMPLETED -> ARCHIVED）")
+    public void archiveRecord(
             @PathVariable String id,
             @AuthenticationPrincipal UserPrincipal principal) {
         workflowService.archiveRecord(id, principal.id());
-        return ApiResponse.success();
     }
 }

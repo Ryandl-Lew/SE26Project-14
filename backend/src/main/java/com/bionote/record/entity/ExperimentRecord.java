@@ -46,6 +46,9 @@ public class ExperimentRecord extends BaseEntity {
     @Column(name = "content_json", nullable = false, length = 20000)
     private String contentJson;
 
+    @Column(name = "template_snapshot_json", length = 20000)
+    private String templateSnapshotJson;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -65,6 +68,20 @@ public class ExperimentRecord extends BaseEntity {
                             LocalDate experimentDate,
                             String location,
                             String contentJson) {
+        this(code, projectId, templateId, title, experimentType, ownerId,
+                experimentDate, location, contentJson, null);
+    }
+
+    public ExperimentRecord(String code,
+                            String projectId,
+                            String templateId,
+                            String title,
+                            String experimentType,
+                            String ownerId,
+                            LocalDate experimentDate,
+                            String location,
+                            String contentJson,
+                            String templateSnapshotJson) {
         this.code = code;
         this.projectId = projectId;
         this.templateId = templateId;
@@ -74,6 +91,7 @@ public class ExperimentRecord extends BaseEntity {
         this.experimentDate = experimentDate;
         this.location = location;
         this.contentJson = contentJson;
+        this.templateSnapshotJson = templateSnapshotJson;
         this.status = RecordStatus.DRAFT;
         this.version = 1L;
     }
@@ -116,6 +134,10 @@ public class ExperimentRecord extends BaseEntity {
 
     public String getContentJson() {
         return contentJson;
+    }
+
+    public String getTemplateSnapshotJson() {
+        return templateSnapshotJson;
     }
 
     public Long getVersion() {

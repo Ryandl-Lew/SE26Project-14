@@ -51,6 +51,7 @@ bionote:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   storage:
     upload-dir: ${FILE_STORAGE_ROOT:./storage}
+    max-size: 20MB
     allowed-extensions:
       - jpg
       - png

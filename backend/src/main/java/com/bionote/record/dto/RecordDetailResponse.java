@@ -21,6 +21,7 @@ public record RecordDetailResponse(
         @Schema(description = "实验日期") LocalDate experimentDate,
         @Schema(description = "实验地点") String location,
         @Schema(description = "内容 JSON") String contentJson,
+        @Schema(description = "创建时的模板字段快照 JSON") String templateSnapshotJson,
         @Schema(description = "版本号") Long version,
         @Schema(description = "创建时间") OffsetDateTime createdAt,
         @Schema(description = "更新时间") OffsetDateTime updatedAt
@@ -29,7 +30,8 @@ public record RecordDetailResponse(
         return new RecordDetailResponse(
                 r.getId(), r.getCode(), r.getProjectId(), r.getTemplateId(),
                 r.getTitle(), r.getExperimentType(), r.getStatus(), r.getOwnerId(),
-                r.getExperimentDate(), r.getLocation(), r.getContentJson(), r.getVersion(),
+                r.getExperimentDate(), r.getLocation(), r.getContentJson(),
+                r.getTemplateSnapshotJson(), r.getVersion(),
                 toOffset(r.getCreatedAt()), toOffset(r.getUpdatedAt()));
     }
 

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ExperimentTemplateRepository extends JpaRepository<ExperimentTemplate, String> {
@@ -14,4 +15,6 @@ public interface ExperimentTemplateRepository extends JpaRepository<ExperimentTe
     List<ExperimentTemplate> findAllByOrderByCategoryAscNameAsc();
 
     boolean existsByName(String name);
+
+    Optional<ExperimentTemplate> findByName(String name);
 }

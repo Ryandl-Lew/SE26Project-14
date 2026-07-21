@@ -15,6 +15,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -53,16 +55,20 @@ public class FileController {
 
     @PostMapping(value = "/projects/{projectId}/files",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "上传项目文件",
             description = "向指定项目上传一个文件附件。文件大小限制 20 MB，允许的扩展名见服务端配置。")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
+                    responseCode = "201",
                     description = "上传成功，返回附件元数据",
                     content = @Content(schema = @Schema(implementation = AttachmentResponse.class))),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400",
-                    description = "文件类型不支持或文件为空")
+                    description = "文件类型不支持、文件签名不匹配或文件为空"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "413",
+                    description = "文件超过 20 MB")
     })
     public ApiResponse<AttachmentResponse> uploadProjectFile(
             @Parameter(description = "项目 ID") @PathVariable String projectId,
@@ -76,16 +82,28 @@ public class FileController {
 
     @PostMapping(value = "/records/{recordId}/attachments",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "上传实验记录附件",
-            description = "向指定实验记录上传一个附件。需要提供所属项目 ID 用于权限校验。")
+            description = "向指定实验记录上传一个附件，服务端根据记录归属项目执行权限校验。")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201",
+                    description = "上传成功，返回附件元数据",
+                    content = @Content(schema = @Schema(implementation = AttachmentResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "文件类型不支持、文件签名不匹配或文件为空"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "413",
+                    description = "文件超过 20 MB")
+    })
     public ApiResponse<AttachmentResponse> uploadRecordAttachment(
             @Parameter(description = "实验记录 ID") @PathVariable String recordId,
-            @Parameter(description = "所属项目 ID（用于权限校验）") @RequestParam("projectId") String projectId,
             @Parameter(description = "要上传的文件") @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         AttachmentResponse response = fileService.uploadRecordAttachment(
-                recordId, projectId, file, principal.id());
+                recordId, file, principal.id());
         return ApiResponse.success(response);
     }
 
@@ -217,31 +235,32 @@ public class FileController {
     // ──────────────────────────────────────────────
 
     @DeleteMapping("/files/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "删除文件（软删除）",
             description = "将附件标记为已删除。删除后可通过恢复接口找回。"
                     + "物理文件的清理由后台定时任务异步处理。")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
+                    responseCode = "204",
                     description = "删除成功"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "附件不存在或已删除")
     })
-    public ApiResponse<Void> delete(
+    public void delete(
             @Parameter(description = "附件 ID") @PathVariable("id") String attachmentId,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         fileService.softDelete(attachmentId, principal.id());
-        return ApiResponse.success();
     }
 
     @PutMapping("/files/{id}/restore")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "恢复已删除文件",
             description = "将已软删除的附件恢复为正常状态。仅当附件处于已删除状态时有效。")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
+                    responseCode = "204",
                     description = "恢复成功"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
@@ -250,11 +269,10 @@ public class FileController {
                     responseCode = "400",
                     description = "附件未被删除，无需恢复")
     })
-    public ApiResponse<Void> restore(
+    public void restore(
             @Parameter(description = "附件 ID") @PathVariable("id") String attachmentId,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         fileService.restore(attachmentId, principal.id());
-        return ApiResponse.success();
     }
 }

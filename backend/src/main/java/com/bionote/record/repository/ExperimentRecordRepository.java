@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 public interface ExperimentRecordRepository extends JpaRepository<ExperimentRecord, String> {
@@ -35,6 +36,20 @@ public interface ExperimentRecordRepository extends JpaRepository<ExperimentReco
     long countByProjectIdAndStatus(String projectId, RecordStatus status);
 
     List<ExperimentRecord> findTop5ByProjectIdOrderByUpdatedAtDesc(String projectId);
+
+    long countByProjectIdInAndStatusNot(Collection<String> projectIds, RecordStatus status);
+
+    long countByProjectIdInAndStatus(Collection<String> projectIds, RecordStatus status);
+
+    Page<ExperimentRecord> findByProjectIdInAndStatusNotOrderByUpdatedAtDesc(
+            Collection<String> projectIds, RecordStatus status, Pageable pageable);
+
+    Page<ExperimentRecord> findByProjectIdInAndStatusAndOwnerIdNotOrderByUpdatedAtDesc(
+            Collection<String> projectIds, RecordStatus status, String ownerId, Pageable pageable);
+
+    Page<ExperimentRecord> findByProjectIdInAndOwnerIdAndStatusInOrderByUpdatedAtDesc(
+            Collection<String> projectIds, String ownerId, Collection<RecordStatus> statuses,
+            Pageable pageable);
 
     @Query("""
             SELECT r FROM ExperimentRecord r

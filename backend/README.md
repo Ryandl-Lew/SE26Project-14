@@ -45,7 +45,7 @@ mvn spring-boot:run
 | `wang` | 王同学 | MEMBER |
 | `zhang` | 张老师 | REVIEWER |
 
-同时初始化一个项目、三套内置模板和两条实验记录。非演示环境应设置 `SEED_ENABLED=false`。
+同时初始化三个项目、十条实验记录和三套完整内置模板（PCR 扩增、琼脂糖凝胶电泳、发酵工程）。非演示环境应设置 `SEED_ENABLED=false`。
 
 ## 测试
 
@@ -53,28 +53,34 @@ mvn spring-boot:run
 mvn test
 ```
 
-测试使用 H2 的 MySQL 兼容模式，无需 Docker。当前共 23 个测试，覆盖应用/Flyway 启动、认证、文件上传下载与软删除、路径穿越防护，以及 10,000 条记录加 2,000 个附件的权限搜索性能场景。
+测试使用 H2 的 MySQL 兼容模式，无需 Docker。当前共 42 个测试，覆盖应用/Flyway 启动、认证、项目隔离与成员权限、模板与记录状态机、禁止自审、版本冲突、Dashboard/搜索数据隔离、文件签名与补偿清理、路径穿越防护，以及 Markdown/PDF/Excel 导出。
 
 ## 主要接口
 
 - `/api/v1/auth`: 登录、当前用户、登出
 - `/api/v1/projects`: 项目 CRUD、归档、活动与成员
-- `/api/v1/records`: 记录 CRUD、复制、提交、审核、归档、评论与版本
+- `/api/v1/templates`: 模板查询、category 筛选、自定义模板创建与字段整体更新
+- `/api/v1/records`: 记录 CRUD、复制、开始、提交、审核、补充、归档、评论与版本
+- `/api/v1/dashboard`: 当前用户可访问项目范围内的工作台聚合数据
+- `/api/v1/projects/{id}/statistics`: 项目记录状态、审核和趋势聚合
 - `/api/v1/projects/{id}/files`、`/api/v1/records/{id}/attachments`: 文件闭环
-- `/api/v1/search`: 按当前用户项目成员关系过滤的综合搜索
-- `/api/v1/export`: 真实记录数据的 Markdown、PDF 与项目 Excel 导出
+- `/api/v1/search`: 权限过滤的项目、记录、模板、附件和项目活动联合分页搜索
+- `/api/v1/projects/{id}/export?format=md|pdf|excel`: 项目 Markdown/PDF/Excel 导出
+- `/api/v1/records/{id}/export`: 单记录 PDF 导出
+
+旧的 `/api/v1/export/projects/{id}` 与 `/api/v1/export/records/{id}` 路径暂保留为兼容别名。
 
 ## 数据库说明
 
-`src/main/resources/db/migration/V1__create_core_schema.sql` 是合并后的全量新库基线。P5 原有的 `V2__drop_attachment_foreign_keys.sql` 为 mock 联调临时方案，合并版未采用，附件外键仍保持有效。
+`src/main/resources/db/migration/V1__create_core_schema.sql` 是已经发布的合并基线；后续结构补充位于 `V2__complete_p0_schema.sql`，包括记录模板快照和完成 P0 所需的约束/索引。P5 原有的 `V2__drop_attachment_foreign_keys.sql` 为 mock 联调临时方案，合并版未采用，附件到项目、记录和上传者的外键仍保持有效。
 
 如果本地数据库曾执行任一成员分支的旧 V1/V2，请重建开发库后再启动合并版；不要在已有 Flyway 历史上直接替换 V1。
 
-## 当前缺口
+## 当前实现范围
 
-- P1 只提交了 `dashboard` 包占位，没有 Dashboard 聚合接口。
-- P3 未提交模板/记录业务代码；当前记录实现来自 P4，模板已有实体、Repository 和三套种子数据，但没有 `/api/v1/templates` Controller。
-- 项目、记录工作流与导出尚缺专门的集成测试；现有测试重点在认证、文件和搜索。
-- 公共前端仍使用 mock API，本次任务没有修改 `frontend/`。
+- P0 后端闭环已实现：项目权限、直接归档、模板快照、记录工作流、Dashboard、权限搜索、文件安全与统一错误响应。
+- P1 已实现：项目 Markdown/PDF/Excel 导出、单记录 PDF、自定义模板、项目统计/趋势；PDF 使用 classpath 内嵌中文字体，不依赖服务器字体。
+- AI 助手、提醒、样品库、试剂库存、独立文件中心、WebSocket 和邮件通知不在当前范围。
+- 公共前端未在本轮修改；联调时应以本节列出的公开路径和 Swagger 为准。
 
 后续新增表结构必须使用新的 Flyway 版本，不再修改已经发布的合并 V1。

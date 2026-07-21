@@ -25,7 +25,7 @@ public enum RecordStatus {
     }
 
     public boolean canArchive() {
-        return this != ARCHIVED;
+        return this == DRAFT || this == IN_PROGRESS || this == COMPLETED;
     }
 
     public boolean canStart() {

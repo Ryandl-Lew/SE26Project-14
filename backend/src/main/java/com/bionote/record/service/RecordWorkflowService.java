@@ -13,10 +13,14 @@ import com.bionote.record.entity.ExperimentRecord;
 import com.bionote.record.entity.RecordStatus;
 import com.bionote.record.repository.ExperimentRecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 public class RecordWorkflowService {
@@ -57,7 +61,8 @@ public class RecordWorkflowService {
         validateTransition(record, RecordStatus.IN_PROGRESS);
 
         record.changeStatus(RecordStatus.IN_PROGRESS);
-        recordRepository.save(record);
+        recordRepository.saveAndFlush(record);
+        snapshotVersion(record, currentUserId, "开始实验");
         auditService.logRecord(record.getProjectId(), currentUserId, "START",
                 record.getId(), "开始实验: " + record.getTitle());
         log.info("记录开始进行: id={}", recordId);
@@ -76,7 +81,7 @@ public class RecordWorkflowService {
         validateContent(record);
 
         record.changeStatus(RecordStatus.PENDING_REVIEW);
-        recordRepository.save(record);
+        recordRepository.saveAndFlush(record);
 
         snapshotVersion(record, currentUserId, "提交审核");
 
@@ -117,14 +122,21 @@ public class RecordWorkflowService {
                 ? RecordStatus.COMPLETED
                 : RecordStatus.REJECTED;
 
+        if (decision == ReviewDecision.REJECT && (reason == null || reason.isBlank())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "退回审核必须填写原因", Map.of("reason", "退回原因不能为空"));
+        }
+
         record.changeStatus(nextStatus);
-        recordRepository.save(record);
+        recordRepository.saveAndFlush(record);
+
+        String normalizedReason = reason == null ? "" : reason.trim();
 
         // 保存审核记录
-        reviewRepository.save(new Review(recordId, currentUserId, decision, reason));
+        reviewRepository.save(new Review(recordId, currentUserId, decision, normalizedReason));
 
         snapshotVersion(record, currentUserId, decision == ReviewDecision.APPROVE
-                ? "审核通过: " + reason : "审核退回: " + reason);
+                ? "审核通过: " + normalizedReason : "审核退回: " + normalizedReason);
 
         auditService.logRecord(record.getProjectId(), currentUserId,
                 decision == ReviewDecision.APPROVE ? "APPROVE" : "REJECT",
@@ -134,6 +146,22 @@ public class RecordWorkflowService {
                         : "审核退回: " + record.getTitle());
 
         log.info("记录审核完成: id={}, decision={}", recordId, decision);
+    }
+
+    /**
+     * 退回后由记录作者或项目 OWNER 开始补充。
+     */
+    @Transactional
+    public void supplementRecord(String recordId, String currentUserId) {
+        ExperimentRecord record = recordQueryService.requireRecord(recordId);
+        accessService.requireCanEditRecord(record.getProjectId(), currentUserId, record.getOwnerId());
+        validateTransition(record, RecordStatus.SUPPLEMENT);
+
+        record.changeStatus(RecordStatus.SUPPLEMENT);
+        recordRepository.saveAndFlush(record);
+        snapshotVersion(record, currentUserId, "开始补充修改");
+        auditService.logRecord(record.getProjectId(), currentUserId, "SUPPLEMENT",
+                record.getId(), "开始补充记录: " + record.getTitle());
     }
 
     /**
@@ -150,7 +178,9 @@ public class RecordWorkflowService {
         }
 
         record.archive();
-        recordRepository.save(record);
+        recordRepository.saveAndFlush(record);
+
+        snapshotVersion(record, currentUserId, "归档记录");
 
         auditService.logRecord(record.getProjectId(), currentUserId, "ARCHIVE",
                 record.getId(), "归档记录: " + record.getTitle());
@@ -169,11 +199,60 @@ public class RecordWorkflowService {
     }
 
     private void validateContent(ExperimentRecord record) {
-        if (record.getContentJson() == null || record.getContentJson().isBlank()
-                || "{}".equals(record.getContentJson())) {
+        JsonNode content;
+        try {
+            content = objectMapper.readTree(record.getContentJson());
+        } catch (Exception exception) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR,
-                    "内容不能为空，请填写实验内容后再提交");
+                    "实验内容不是合法 JSON", Map.of("contentJson", "必须是合法 JSON"));
         }
+
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        if (record.getTemplateSnapshotJson() != null
+                && !record.getTemplateSnapshotJson().isBlank()) {
+            try {
+                JsonNode fields = objectMapper.readTree(record.getTemplateSnapshotJson()).path("fields");
+                for (JsonNode field : fields) {
+                    if (field.path("required").asBoolean(false)) {
+                        String key = field.path("fieldKey").asText();
+                        if (isEmptyValue(content.get(key))) {
+                            String label = field.path("label").asText(key);
+                            fieldErrors.put(key, label + "不能为空");
+                        }
+                    }
+                }
+            } catch (Exception exception) {
+                throw new BusinessException(ErrorCode.INTERNAL_ERROR, "模板快照解析失败");
+            }
+        } else if (isEmptyValue(content)) {
+            fieldErrors.put("contentJson", "请至少填写一项实验内容");
+        }
+
+        if (!fieldErrors.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "实验记录必填字段不完整", fieldErrors);
+        }
+    }
+
+    private boolean isEmptyValue(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return true;
+        }
+        if (node.isTextual()) {
+            return node.asText().isBlank();
+        }
+        if (node.isArray() || node.isObject()) {
+            if (node.isEmpty()) {
+                return true;
+            }
+            for (JsonNode child : node) {
+                if (!isEmptyValue(child)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     private void snapshotVersion(ExperimentRecord record, String changedBy, String changeReason) {
@@ -183,7 +262,8 @@ public class RecordWorkflowService {
             versionRepository.save(new RecordVersion(
                     record.getId(), record.getVersion(), snapshot, changedBy, changeReason));
         } catch (Exception e) {
-            log.warn("版本快照序列化失败: recordId={}", record.getId());
+            throw new BusinessException(ErrorCode.INTERNAL_ERROR,
+                    "版本快照保存失败: " + record.getId());
         }
     }
 }

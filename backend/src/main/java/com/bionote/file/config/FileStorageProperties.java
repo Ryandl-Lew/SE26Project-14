@@ -1,6 +1,7 @@
 package com.bionote.file.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 
 import java.util.List;
 
@@ -36,6 +37,8 @@ public class FileStorageProperties {
      */
     private List<String> allowedExtensions = List.of("jpg", "png", "pdf", "csv", "xls", "xlsx");
 
+    private DataSize maxSize = DataSize.ofMegabytes(20);
+
     public String getUploadDir() {
         return uploadDir;
     }
@@ -50,5 +53,13 @@ public class FileStorageProperties {
 
     public void setAllowedExtensions(List<String> allowedExtensions) {
         this.allowedExtensions = allowedExtensions;
+    }
+
+    public DataSize getMaxSize() {
+        return maxSize;
+    }
+
+    public void setMaxSize(DataSize maxSize) {
+        this.maxSize = maxSize;
     }
 }

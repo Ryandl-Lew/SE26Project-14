@@ -8,9 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/projects")
@@ -24,6 +23,7 @@ public class ProjectController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "创建项目")
     public ApiResponse<ProjectResponse> createProject(@Valid @RequestBody ProjectRequest request,
                                                       @AuthenticationPrincipal UserPrincipal principal) {
@@ -32,14 +32,18 @@ public class ProjectController {
 
     @GetMapping
     @Operation(summary = "分页查询项目列表")
-    public ApiResponse<PageResponse<ProjectResponse>> listProjects(ProjectFilter filter) {
-        return ApiResponse.success(projectService.listProjects(filter));
+    public ApiResponse<PageResponse<ProjectResponse>> listProjects(
+            ProjectFilter filter,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(projectService.listProjects(filter, principal.id()));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取项目详情")
-    public ApiResponse<ProjectResponse> getProject(@PathVariable String id) {
-        return ApiResponse.success(projectService.getProject(id));
+    public ApiResponse<ProjectResponse> getProject(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(projectService.getProject(id, principal.id()));
     }
 
     @PatchMapping("/{id}")
@@ -51,15 +55,10 @@ public class ProjectController {
     }
 
     @PostMapping("/{id}/archive")
-    @Operation(summary = "归档项目（已完成→待复核→已归档）")
-    public ApiResponse<ProjectResponse> archiveProject(@PathVariable String id,
-                                                       @AuthenticationPrincipal UserPrincipal principal) {
-        return ApiResponse.success(projectService.archiveProject(id, principal));
-    }
-
-    @GetMapping("/{id}/activities")
-    @Operation(summary = "获取项目动态")
-    public ApiResponse<List<ProjectActivityResponse>> getActivities(@PathVariable String id) {
-        return ApiResponse.success(projectService.getActivities(id));
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "由项目 OWNER 直接归档项目")
+    public void archiveProject(@PathVariable String id,
+                               @AuthenticationPrincipal UserPrincipal principal) {
+        projectService.archiveProject(id, principal);
     }
 }

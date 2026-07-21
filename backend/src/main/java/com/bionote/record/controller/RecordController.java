@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +27,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping("/api/v1/records")
+@Validated
 @Tag(name = "Records", description = "实验记录 CRUD")
 public class RecordController {
 
@@ -60,8 +64,9 @@ public class RecordController {
             @Parameter(description = "项目 ID") @RequestParam String projectId,
             @Parameter(description = "状态筛选（可选）") @RequestParam(required = false) RecordStatus status,
             @Parameter(description = "负责人 ID（可选）") @RequestParam(required = false) String ownerId,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "每页条数") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "0") @Min(0) int page,
+            @Parameter(description = "每页条数") @RequestParam(defaultValue = "20")
+            @Min(1) @Max(100) int size,
             @AuthenticationPrincipal UserPrincipal principal) {
         return ApiResponse.success(PageResponse.from(
                 recordService.listRecords(projectId, status, ownerId, page, size, principal.id()),

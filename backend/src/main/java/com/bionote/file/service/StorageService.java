@@ -19,7 +19,7 @@ public interface StorageService {
      *         供后续加载/删除时使用
      * @throws com.bionote.common.error.BusinessException 文件为空、扩展名不合法时抛出
      */
-    String store(MultipartFile file);
+    StoredFile store(MultipartFile file);
 
     /**
      * 根据存储标识加载文件为 Spring {@link Resource}，供下载与预览使用。
@@ -39,4 +39,7 @@ public interface StorageService {
      * @param storageKey 由 {@link #store(MultipartFile)} 返回的存储标识
      */
     void delete(String storageKey);
+
+    record StoredFile(String storageKey, String detectedMimeType) {
+    }
 }

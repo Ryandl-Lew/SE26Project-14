@@ -4,6 +4,7 @@ import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
 import com.bionote.project.dto.*;
 import com.bionote.project.entity.*;
+import com.bionote.project.service.ProjectAccessService;
 import com.bionote.security.UserPrincipal;
 import com.bionote.user.entity.User;
 import com.bionote.user.repository.UserRepository;
@@ -23,22 +24,23 @@ public class MemberService {
     private final ProjectRepository projectRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final ProjectAccessService accessService;
 
     public MemberService(MemberRepository memberRepository,
                          ProjectRepository projectRepository,
                          ActivityRepository activityRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         ProjectAccessService accessService) {
         this.memberRepository = memberRepository;
         this.projectRepository = projectRepository;
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
+        this.accessService = accessService;
     }
 
     @Transactional(readOnly = true)
-    public List<MemberResponse> listMembers(String projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
-        }
+    public List<MemberResponse> listMembers(String projectId, String currentUserId) {
+        accessService.requireCanRead(projectId, currentUserId);
 
         List<ProjectMember> members = memberRepository.findByProjectId(projectId);
 
@@ -51,11 +53,7 @@ public class MemberService {
 
     @Transactional
     public MemberResponse addMember(String projectId, MemberRequest request, UserPrincipal principal) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
-        }
-
-        requirePermission(projectId, principal, "添加成员");
+        accessService.requireCanManageMembers(projectId, principal.id());
 
         if (memberRepository.existsByProjectIdAndUserId(projectId, request.userId())) {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "该用户已是项目成员");
@@ -90,11 +88,7 @@ public class MemberService {
     @Transactional
     public MemberResponse updateMember(String projectId, String userId,
                                        MemberUpdateRequest request, UserPrincipal principal) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
-        }
-
-        requirePermission(projectId, principal, "修改成员");
+        accessService.requireCanManageMembers(projectId, principal.id());
 
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "成员不存在"));
@@ -143,11 +137,7 @@ public class MemberService {
 
     @Transactional
     public void removeMember(String projectId, String userId, UserPrincipal principal) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
-        }
-
-        requirePermission(projectId, principal, "移除成员");
+        accessService.requireCanManageMembers(projectId, principal.id());
 
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "成员不存在"));
@@ -169,13 +159,4 @@ public class MemberService {
                 projectId, userId, principal.username());
     }
 
-    private void requirePermission(String projectId, UserPrincipal principal, String action) {
-        ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, principal.id())
-                .orElseThrow(() -> new BusinessException(ErrorCode.ACCESS_DENIED,
-                        "您不是该项目成员，无权" + action));
-        if (member.getRole() != ProjectRole.OWNER) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED,
-                    "仅项目负责人可以" + action);
-        }
-    }
 }
