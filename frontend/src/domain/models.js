@@ -23,15 +23,6 @@
  * @typedef {Object} PermissionMatrixRow
  * @property {string} permission 权限项名称
  * @property {Record<import('./enums').ProjectRole, import('./enums').PermissionValue>} values
- *
- * @typedef {Object} AuditEntry 修改追溯记录（实验记录 / 项目通用）
- * @property {import('./common').ID} id
- * @property {import('./enums').AuditAction} action 操作类型
- * @property {string} actorName 修改人
- * @property {string} targetName 修改对象（记录标题 / 项目名称 / 字段名）
- * @property {string} changeSummary 修改内容摘要
- * @property {string} [reason] 修改原因
- * @property {import('./common').ISODateTime} createdAt 修改时间
  */
 
 /* -------------------------------- 项目 --------------------------------- */

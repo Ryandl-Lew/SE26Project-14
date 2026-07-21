@@ -5,9 +5,8 @@
 import {
   mockActivities,
   mockAttachments,
-  mockMembersByProject,
+  mockMembers,
   mockProjects,
-  mockProjectRevisions,
   mockTimeline,
 } from '@/mocks/data'
 import { mockResponse } from './client'
@@ -64,22 +63,12 @@ export function fetchProjectActivities(_projectId) {
 
 /**
  * 获取项目成员
- * @param {string} projectId
+ * @param {string} _projectId
  * @returns {Promise<import('@/domain/models').ProjectMember[]>}
  */
-export function fetchProjectMembers(projectId) {
+export function fetchProjectMembers(_projectId) {
   // TODO: GET /api/projects/:id/members
-  return mockResponse(mockMembersByProject[projectId] ?? mockMembersByProject['p-001'])
-}
-
-/**
- * 获取项目内容的修改追溯（修改人 / 时间 / 内容 / 原因）
- * @param {string} _projectId
- * @returns {Promise<import('@/domain/models').AuditEntry[]>}
- */
-export function fetchProjectRevisions(_projectId) {
-  // TODO: GET /api/projects/:id/revisions
-  return mockResponse(mockProjectRevisions)
+  return mockResponse(mockMembers)
 }
 
 /**

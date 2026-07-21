@@ -1,14 +1,18 @@
 /**
- * 模板中心 Templates
- * 分类标签 + 模板卡片 + 选中模板的字段结构表。
+ * 模板中心 Templates（重设计）
+ * 分类选项卡 + 模板卡片 + 选中模板的字段结构表。
  */
 import { useEffect, useState } from 'react'
-import { PageHeader, Surface } from '@/components/ui'
+import { Plus, Pencil } from 'lucide-react'
+import { Button, PageHeader, Surface, Tabs } from '@/components/ui'
 import TemplateCard from '@/components/template/TemplateCard'
 import { TEMPLATE_CATEGORY_LABELS, TEMPLATE_FIELD_TYPE_LABELS } from '@/domain'
 import { fetchTemplates } from '@/api'
 
-const CATEGORY_TABS = Object.entries(TEMPLATE_CATEGORY_LABELS)
+const CATEGORY_TABS = Object.entries(TEMPLATE_CATEGORY_LABELS).map(([key, label]) => ({
+  key,
+  label,
+}))
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState([])
@@ -29,22 +33,12 @@ export default function TemplatesPage() {
         eyebrow="模板中心"
         title="实验模板"
         description="用模板字段沉淀 PCR、qPCR、细胞实验等常用记录结构。"
-        actions={<button className="primary-btn">＋ 新建模板</button>}
+        actions={<Button icon={Plus}>新建模板</Button>}
       />
 
-      <div className="tabs">
-        {CATEGORY_TABS.map(([key, label]) => (
-          <button
-            key={key}
-            className={`tab-btn ${key === activeTab ? 'active' : ''}`.trim()}
-            onClick={() => setActiveTab(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs items={CATEGORY_TABS} activeKey={activeTab} onChange={setActiveTab} />
 
-      <div className="template-grid">
+      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
         {visible.map((t) => (
           <TemplateCard key={t.id} template={t} />
         ))}
@@ -52,12 +46,16 @@ export default function TemplatesPage() {
 
       {fieldTemplate && (
         <Surface
-          title={`${fieldTemplate.name}字段结构`}
-          extra={<button className="secondary-btn">编辑字段</button>}
-          style={{ marginTop: 18 }}
+          title={`「${fieldTemplate.name}」字段结构`}
+          extra={
+            <Button variant="secondary" size="sm" icon={Pencil}>
+              编辑字段
+            </Button>
+          }
+          className="mt-6"
         >
           <div className="table-wrap">
-            <table>
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>字段名称</th>
@@ -70,10 +68,16 @@ export default function TemplatesPage() {
               <tbody>
                 {fieldTemplate.fields.map((f) => (
                   <tr key={f.id}>
-                    <td>{f.name}</td>
+                    <td className="font-medium text-slate-900">{f.name}</td>
                     <td>{TEMPLATE_FIELD_TYPE_LABELS[f.type]}</td>
-                    <td>{f.required ? '是' : '否'}</td>
-                    <td>{f.unit || '-'}</td>
+                    <td>
+                      {f.required ? (
+                        <span className="font-medium text-brand-600">必填</span>
+                      ) : (
+                        <span className="text-slate-400">选填</span>
+                      )}
+                    </td>
+                    <td className="font-mono text-xs">{f.unit || '-'}</td>
                     <td>{f.searchable ? '是' : '否'}</td>
                   </tr>
                 ))}

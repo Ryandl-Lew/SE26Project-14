@@ -4,7 +4,12 @@
  * 登录成功后持久化到 localStorage，刷新页面可恢复会话。
  */
 import { create } from 'zustand'
-import { login as loginApi, logout as logoutApi } from '@/api/auth'
+import {
+  getCurrentUser,
+  login as loginApi,
+  logout as logoutApi,
+  register as registerApi,
+} from '@/api/auth'
 
 export const useAuthStore = create((set, get) => ({
   /** @type {{ id: string, name: string, email: string, avatarText: string } | null} */
@@ -17,30 +22,37 @@ export const useAuthStore = create((set, get) => ({
   /**
    * 尝试从 localStorage 恢复登录会话
    */
-  restoreSession: () => {
+  restoreSession: async () => {
     const token = localStorage.getItem('auth_token')
-    const userStr = localStorage.getItem('auth_user')
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr)
-        set({ currentUser: user, token, loading: false })
-        return
-      } catch {
-        // ignore
-      }
+    if (!token) {
+      set({ currentUser: null, token: null, loading: false })
+      return
     }
-    set({ loading: false })
+    try {
+      const user = await getCurrentUser()
+      localStorage.setItem('auth_user', JSON.stringify(user))
+      set({ currentUser: user, token, loading: false })
+    } catch {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+      set({ currentUser: null, token: null, loading: false })
+    }
   },
 
   /**
    * 登录
-   * @param {{ username: string, password: string }} credentials
+   * @param {{ identifier: string, password: string }} credentials
    */
   login: async (credentials) => {
     const { user, token } = await loginApi(credentials)
     localStorage.setItem('auth_token', token)
     localStorage.setItem('auth_user', JSON.stringify(user))
     set({ currentUser: user, token })
+  },
+
+  register: async (account) => {
+    await registerApi(account)
+    await get().login({ identifier: account.username, password: account.password })
   },
 
   /**

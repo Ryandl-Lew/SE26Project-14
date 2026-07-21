@@ -1,9 +1,10 @@
 /**
- * 团队管理 Team
- * 按项目管理成员权限：项目概要 + 成员列表 + 角色权限矩阵。
+ * 团队管理 Team（重设计）
+ * 按项目管理成员权限：成员列表 + 角色权限矩阵。
  */
 import { useEffect, useState } from 'react'
-import { PageHeader, Surface, Badge } from '@/components/ui'
+import { UserPlus, Pencil } from 'lucide-react'
+import { Button, PageHeader, Surface, Badge } from '@/components/ui'
 import {
   PROJECT_ROLE_LABELS,
   PROJECT_ROLE_TONES,
@@ -27,42 +28,54 @@ export default function TeamPage() {
   }, [currentProjectId])
 
   return (
-    <section>
+    <section className="space-y-6">
       <PageHeader
         eyebrow="团队管理"
         title="按项目管理成员权限"
         description="团队权限围绕具体项目配置成员角色与操作范围。"
-        actions={<button className="primary-btn">＋ 邀请成员</button>}
+        actions={<Button icon={UserPlus}>邀请成员</Button>}
       />
 
-      <Surface title="项目成员列表" extra={<button className="primary-btn">邀请成员</button>}>
+      <Surface title={`项目成员列表 · ${members.length} 人`}>
         <div className="table-wrap">
-          <table>
+          <table className="data-table">
             <thead>
               <tr>
-                <th>姓名</th>
-                <th>邮箱</th>
+                <th>成员</th>
                 <th>项目角色</th>
-                <th>权限</th>
+                <th>权限摘要</th>
                 <th>加入时间</th>
                 <th>最近活跃</th>
-                <th>操作</th>
+                <th className="text-right">操作</th>
               </tr>
             </thead>
             <tbody>
               {members.map((m) => (
                 <tr key={m.user.id}>
-                  <td>{m.user.name}</td>
-                  <td>{m.user.email}</td>
+                  <td>
+                    <span className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-xs font-bold text-white">
+                        {m.user.avatarText}
+                      </span>
+                      <span>
+                        <span className="block text-sm font-medium text-slate-900">
+                          {m.user.name}
+                        </span>
+                        <span className="block text-xs text-slate-400">{m.user.email}</span>
+                      </span>
+                    </span>
+                  </td>
                   <td>
                     <Badge tone={PROJECT_ROLE_TONES[m.role]}>{PROJECT_ROLE_LABELS[m.role]}</Badge>
                   </td>
-                  <td>{m.permissionSummary}</td>
-                  <td>{m.joinedAt}</td>
-                  <td>{m.lastActiveAt}</td>
-                  <td>
+                  <td className="text-slate-500">{m.permissionSummary}</td>
+                  <td className="text-slate-500">{m.joinedAt}</td>
+                  <td className="text-slate-500">{m.lastActiveAt}</td>
+                  <td className="text-right">
                     {/* TODO: 接入修改权限（updateMemberRole） */}
-                    <button className="link-btn">修改权限</button>
+                    <Button variant="ghost" size="sm" icon={Pencil}>
+                      修改权限
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -73,28 +86,35 @@ export default function TeamPage() {
 
       <Surface
         title="角色权限矩阵"
-        extra={<button className="secondary-btn">编辑权限</button>}
-        style={{ marginTop: 18 }}
+        extra={
+          <Button variant="secondary" size="sm" icon={Pencil}>
+            编辑权限
+          </Button>
+        }
       >
         <div className="table-wrap">
-          <table>
+          <table className="data-table">
             <thead>
               <tr>
                 <th>权限项</th>
                 {ROLE_COLUMNS.map((role) => (
-                  <th key={role}>{PROJECT_ROLE_LABELS[role]}</th>
+                  <th key={role} className="text-center">
+                    {PROJECT_ROLE_LABELS[role]}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {matrix.map((row) => (
                 <tr key={row.permission}>
-                  <td>{row.permission}</td>
+                  <td className="font-medium text-slate-900">{row.permission}</td>
                   {ROLE_COLUMNS.map((role) => {
                     const v = row.values[role]
                     return (
-                      <td key={role}>
-                        <Badge tone={PERMISSION_VALUE_TONES[v]}>{PERMISSION_VALUE_LABELS[v]}</Badge>
+                      <td key={role} className="text-center">
+                        <Badge tone={PERMISSION_VALUE_TONES[v]}>
+                          {PERMISSION_VALUE_LABELS[v]}
+                        </Badge>
                       </td>
                     )
                   })}

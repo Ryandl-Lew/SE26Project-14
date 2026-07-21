@@ -1,7 +1,6 @@
 /**
- * Tabs 页签
- * 受控组件：items + activeKey + onChange。
- * 样式见 global.css 的 .tabs / .tab-btn。
+ * Tabs 分段选项卡
+ * 用于模板分类、搜索结果分类等场景。
  */
 
 /**
@@ -9,22 +8,27 @@
  * @param {{ key: string, label: import('react').ReactNode }[]} props.items
  * @param {string} props.activeKey
  * @param {(key: string) => void} props.onChange
- * @param {import('react').CSSProperties} [props.style]
  */
-export default function Tabs({ items, activeKey, onChange, style }) {
+export default function Tabs({ items, activeKey, onChange }) {
   return (
-    <div className="tabs" role="tablist" style={style}>
-      {items.map((item) => (
-        <button
-          key={item.key}
-          role="tab"
-          aria-selected={item.key === activeKey}
-          className={`tab-btn ${item.key === activeKey ? 'active' : ''}`.trim()}
-          onClick={() => onChange(item.key)}
-        >
-          {item.label}
-        </button>
-      ))}
+    <div className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-slate-100 p-1">
+      {items.map((item) => {
+        const active = item.key === activeKey
+        return (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => onChange(item.key)}
+            className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all ${
+              active
+                ? 'bg-white text-slate-900 shadow-card'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            {item.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
