@@ -24,9 +24,14 @@ export function fetchRecords(projectId, _query) {
  * @param {string} _id
  * @returns {Promise<import('@/domain/models').ExperimentRecord>}
  */
-export function fetchRecord(_id) {
+export function fetchRecord(id) {
   // TODO: GET /api/records/:id
-  return mockResponse(mockRecordDetail)
+  const summary = mockRecords.find((record) => record.id === id) ?? mockRecords[0]
+  return mockResponse({
+    ...mockRecordDetail,
+    ...summary,
+    experimentDate: summary.createdAt?.slice(0, 10) ?? mockRecordDetail.experimentDate,
+  })
 }
 
 /**

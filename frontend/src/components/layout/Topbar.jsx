@@ -1,123 +1,143 @@
 /**
  * Topbar 顶栏
- * 全局搜索 + 当前项目切换 + 新建菜单 + 用户头像 + 登出。
+ * 极简设计：仅保留移动端菜单按钮与通知入口。
+ * 搜索 / 项目切换 / 新建操作均归属具体页面，不在全局顶栏重复。
  */
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppStore } from '@/store/appStore'
-import { useAuthStore } from '@/store/authStore'
-import { mockProjects } from '@/mocks/data'
+import { Menu, Bell, CheckCheck, FileCheck2, UserPlus, Undo2 } from 'lucide-react'
 
-export default function Topbar() {
+const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'nt-1',
+    title: '新的审核任务',
+    description: '王同学提交了「qPCR 引物扩增效率验证」R2',
+    time: '10 分钟前',
+    type: 'review',
+    unread: true,
+    path: '/records/r-006',
+  },
+  {
+    id: 'nt-2',
+    title: '记录被退回修改',
+    description: '张老师对「qPCR 检测 IFN-β 表达」提出了修改意见',
+    time: '2 小时前',
+    type: 'change',
+    unread: true,
+    path: '/records/r-002',
+  },
+  {
+    id: 'nt-3',
+    title: '项目邀请',
+    description: '陈同学邀请你加入「蛋白互作验证」',
+    time: '昨天',
+    type: 'invite',
+    unread: false,
+  },
+]
+
+const NOTIFICATION_ICONS = {
+  review: FileCheck2,
+  change: Undo2,
+  invite: UserPlus,
+}
+
+export default function Topbar({ onMenuClick }) {
   const navigate = useNavigate()
-  const { currentProjectId, setCurrentProject, searchKeyword, setSearchKeyword } =
-    useAppStore()
-  const currentUser = useAuthStore((s) => s.currentUser)
-  const logout = useAuthStore((s) => s.logout)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
+  const [open, setOpen] = useState(false)
+  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
+  const unreadCount = notifications.filter((item) => item.unread).length
 
-  // 点击外部关闭新建菜单
-  useEffect(() => {
-    if (!menuOpen) return
-    const onClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
-    }
-    document.addEventListener('click', onClick)
-    return () => document.removeEventListener('click', onClick)
-  }, [menuOpen])
-
-  const onSearchKeyDown = (e) => {
-    if (e.key === 'Enter') navigate('/search')
-  }
-
-  const jump = (path) => {
-    setMenuOpen(false)
-    navigate(path)
-  }
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login', { replace: true })
+  const openNotification = (item) => {
+    setNotifications((list) =>
+      list.map((notification) =>
+        notification.id === item.id ? { ...notification, unread: false } : notification,
+      ),
+    )
+    setOpen(false)
+    if (item.path) navigate(item.path)
   }
 
   return (
-    <header className="topbar">
-      <div className="global-search">
-        <span>⌕</span>
-        <input
-          type="search"
-          value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)}
-          onKeyDown={onSearchKeyDown}
-          aria-label="全局搜索"
-          placeholder="搜索项目、实验记录、模板、成员、附件"
-        />
-      </div>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8">
+      {/* 移动端菜单按钮 */}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        aria-label="打开导航菜单"
+        className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+      >
+        <Menu size={20} />
+      </button>
 
-      <div className="top-actions">
-        <select
-          className="lab-switcher"
-          aria-label="当前项目"
-          value={currentProjectId}
-          onChange={(e) => setCurrentProject(e.target.value)}
-        >
-          {mockProjects.map((p) => (
-            <option key={p.id} value={p.id}>
-              当前项目：{p.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="create-menu-wrap" ref={menuRef}>
+      <div className="ml-auto flex items-center gap-2.5">
+        {/* 通知 */}
+        <div className="relative">
           <button
-            className="primary-btn"
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setMenuOpen((v) => !v)
-            }}
+            aria-label={`通知，${unreadCount} 条未读`}
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+            className="relative rounded-lg p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
           >
-            ＋ 新建
+            <Bell size={18} />
+            {unreadCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                {unreadCount}
+              </span>
+            )}
           </button>
-          {menuOpen && (
-            <div className="create-menu" aria-label="新建菜单">
-              <button type="button" onClick={() => jump('/projects')}>
-                新建项目
-              </button>
-              <button type="button" onClick={() => jump('/records/new')}>
-                新建实验记录
-              </button>
-              <button type="button" onClick={() => jump('/templates')}>
-                新建模板
-              </button>
+
+          {open && (
+            <div className="absolute right-0 top-12 z-50 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop animate-scale-in">
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">通知</h2>
+                  <p className="text-xs text-slate-400">{unreadCount} 条未读消息</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNotifications((list) => list.map((item) => ({ ...item, unread: false })))
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                >
+                  <CheckCheck size={14} />
+                  全部已读
+                </button>
+              </div>
+              <div className="max-h-[420px] divide-y divide-slate-100 overflow-y-auto">
+                {notifications.map((item) => {
+                  const Icon = NOTIFICATION_ICONS[item.type] ?? Bell
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => openNotification(item)}
+                      className={`flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-slate-50 ${
+                        item.unread ? 'bg-brand-50/40' : 'bg-white'
+                      }`}
+                    >
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                        <Icon size={15} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 text-sm font-medium text-slate-900">
+                          {item.title}
+                          {item.unread && <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                          {item.description}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-slate-400">{item.time}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
-
-        {currentUser ? (
-          <>
-            <div className="avatar" title={currentUser.name}>
-              {currentUser.avatarText}
-            </div>
-            <button
-              className="ghost-btn"
-              type="button"
-              onClick={handleLogout}
-              style={{ fontSize: 13 }}
-            >
-              登出
-            </button>
-          </>
-        ) : (
-          <button
-            className="primary-btn"
-            type="button"
-            onClick={() => navigate('/login')}
-          >
-            登录
-          </button>
-        )}
       </div>
     </header>
   )

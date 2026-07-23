@@ -4,62 +4,6 @@
  * TODO: 后端接入后删除本文件，API 层改为真实请求。
  */
 
-export const currentUser = {
-  id: 'u-001',
-  name: '李同学',
-  email: 'li@example.com',
-  avatarText: '李',
-}
-
-export const currentLab = '分子生物学教学实验室'
-
-/**
- * 本地账号数据（mock 登录用）
- * 密码明文仅用于本地 demo，真实项目不可如此存储。
- */
-export const localAccounts = [
-  {
-    id: 'u-001',
-    username: 'li',
-    password: '123456',
-    name: '李同学',
-    email: 'li@example.com',
-    avatarText: '李',
-  },
-  {
-    id: 'u-002',
-    username: 'wang',
-    password: '123456',
-    name: '王同学',
-    email: 'wang@example.com',
-    avatarText: '王',
-  },
-  {
-    id: 'u-003',
-    username: 'zhang',
-    password: '123456',
-    name: '张老师',
-    email: 'pi@example.com',
-    avatarText: '张',
-  },
-  {
-    id: 'u-004',
-    username: 'chen',
-    password: '123456',
-    name: '陈同学',
-    email: 'chen@example.com',
-    avatarText: '陈',
-  },
-  {
-    id: 'u-005',
-    username: 'zhao',
-    password: '123456',
-    name: '赵同学',
-    email: 'zhao@example.com',
-    avatarText: '赵',
-  },
-]
-
 /** @type {import('@/domain/models').Project[]} */
 export const mockProjects = [
   {
@@ -69,10 +13,11 @@ export const mockProjects = [
     description: '扩增 GFP 片段并验证融合蛋白表达条件。',
     status: 'active',
     ownerName: '李同学',
+    currentUserRole: 'owner',
     memberCount: 5,
     recordCount: 12,
-    progress: 68,
     tags: ['GFP', 'PCR', '蛋白表达'],
+    createdAt: '2026-07-01',
     updatedAt: '2026-07-07',
   },
   {
@@ -80,12 +25,13 @@ export const mockProjects = [
     code: 'PRJ-2026-002',
     name: 'IFN-β 表达检测',
     description: 'qPCR 检测刺激条件下的基因表达变化。',
-    status: 'reviewing',
+    status: 'active',
     ownerName: '陈同学',
+    currentUserRole: 'member',
     memberCount: 3,
     recordCount: 7,
-    progress: 42,
     tags: ['qPCR', 'IFN-β'],
+    createdAt: '2026-06-18',
     updatedAt: '2026-07-07',
   },
   {
@@ -93,12 +39,13 @@ export const mockProjects = [
     code: 'PRJ-2026-003',
     name: '细胞转染条件优化',
     description: '比较不同细胞密度和试剂比例对转染效率的影响。',
-    status: 'completed',
+    status: 'archived',
     ownerName: '王同学',
+    currentUserRole: 'member',
     memberCount: 4,
     recordCount: 11,
-    progress: 100,
     tags: ['转染', '细胞'],
+    createdAt: '2026-05-12',
     updatedAt: '2026-07-05',
   },
   {
@@ -106,12 +53,13 @@ export const mockProjects = [
     code: 'PRJ-2026-004',
     name: 'qPCR 引物验证',
     description: '验证 qPCR 引物特异性与扩增效率。',
-    status: 'completed',
+    status: 'active',
     ownerName: '陈同学',
+    currentUserRole: 'owner',
     memberCount: 3,
     recordCount: 6,
-    progress: 100,
     tags: ['qPCR', '引物'],
+    createdAt: '2026-04-09',
     updatedAt: '2026-07-05',
   },
 ]
@@ -125,8 +73,13 @@ export const mockRecords = [
     experimentType: 'PCR',
     status: 'pending_review',
     ownerName: '李同学',
+    creatorId: 'u-001',
+    assignedReviewerId: 'u-003',
+    assignedReviewerName: '张老师',
+    revision: 'R1',
     projectId: 'p-001',
     projectName: 'GFP 融合蛋白表达项目',
+    createdAt: '2026-07-07 09:20',
     updatedAt: '2026-07-07 14:30',
   },
   {
@@ -136,8 +89,13 @@ export const mockRecords = [
     experimentType: 'qPCR',
     status: 'rejected',
     ownerName: '李同学',
+    creatorId: 'u-001',
+    assignedReviewerId: 'u-003',
+    assignedReviewerName: '张老师',
+    revision: 'R1',
     projectId: 'p-002',
     projectName: 'IFN-β 表达检测',
+    createdAt: '2026-07-07 08:40',
     updatedAt: '2026-07-07 11:40',
   },
   {
@@ -147,8 +105,13 @@ export const mockRecords = [
     experimentType: '质粒提取',
     status: 'completed',
     ownerName: '王同学',
+    creatorId: 'u-002',
+    assignedReviewerId: 'u-003',
+    assignedReviewerName: '张老师',
+    revision: 'R2',
     projectId: 'p-001',
     projectName: 'GFP 融合蛋白表达项目',
+    createdAt: '2026-07-06 13:10',
     updatedAt: '2026-07-06 18:20',
   },
   {
@@ -158,8 +121,13 @@ export const mockRecords = [
     experimentType: 'WB',
     status: 'in_progress',
     ownerName: '陈同学',
+    creatorId: 'u-003',
+    assignedReviewerId: null,
+    assignedReviewerName: null,
+    revision: null,
     projectId: 'p-001',
     projectName: 'GFP 融合蛋白表达项目',
+    createdAt: '2026-07-06 09:15',
     updatedAt: '2026-07-06 09:15',
   },
   {
@@ -169,9 +137,30 @@ export const mockRecords = [
     experimentType: '测序',
     status: 'completed',
     ownerName: '陈同学',
+    creatorId: 'u-003',
+    assignedReviewerId: 'u-001',
+    assignedReviewerName: '李同学',
+    revision: 'R1',
     projectId: 'p-001',
     projectName: 'GFP 融合蛋白表达项目',
+    createdAt: '2026-07-03 09:10',
     updatedAt: '2026-07-03 10:00',
+  },
+  {
+    id: 'r-006',
+    code: 'EXP-20260702-001',
+    title: 'qPCR 引物扩增效率验证',
+    experimentType: 'qPCR',
+    status: 'pending_review',
+    ownerName: '王同学',
+    creatorId: 'u-002',
+    assignedReviewerId: 'u-001',
+    assignedReviewerName: '李同学',
+    revision: 'R2',
+    projectId: 'p-004',
+    projectName: 'qPCR 引物验证',
+    createdAt: '2026-07-02 10:30',
+    updatedAt: '2026-07-05 16:20',
   },
 ]
 
@@ -214,29 +203,51 @@ export const mockTimeline = [
   {
     id: 't-1',
     date: '2026-07-07',
-    title: 'PCR 扩增 GFP 片段',
-    summary: '类型：PCR · 负责人：李同学 · 状态：已完成 · 成功扩增出约 750 bp 条带 · 附件 2 · 评论 1',
+    time: '14:30',
+    title: '李同学提交了实验记录 R1',
+    summary: '「PCR 扩增 GFP 片段」进入审核中，指定张老师审核。',
+    category: '审核',
   },
   {
     id: 't-2',
     date: '2026-07-06',
-    title: '质粒 pEGFP-N1 小提',
-    summary: '类型：质粒提取 · 负责人：王同学 · 状态：进行中 · 浓度 185 ng/μL，等待补充电泳图。',
+    time: '18:20',
+    title: '张老师通过了实验记录',
+    summary: '「质粒 pEGFP-N1 小提」审核完成，记录转为只读。',
+    category: '审核',
   },
   {
     id: 't-3',
     date: '2026-07-03',
-    title: '测序送样',
-    summary: '类型：测序 · 负责人：陈同学 · 状态：已完成 · 附件：seq_order_0703.xlsx。',
+    time: '10:00',
+    title: '陈同学创建了实验记录',
+    summary: '创建「测序送样」，记录进入进行中状态。',
+    category: '记录',
+  },
+  {
+    id: 't-4',
+    date: '2026-07-02',
+    time: '09:40',
+    title: '王同学加入项目',
+    summary: '通过项目邀请加入，默认角色为编辑成员。',
+    category: '成员',
+  },
+  {
+    id: 't-5',
+    date: '2026-07-01',
+    time: '10:12',
+    title: '李同学创建了项目',
+    summary: '项目「GFP 融合蛋白表达项目」开始记录审计事件。',
+    category: '项目',
   },
 ]
 
 /** @type {import('@/domain/models').ProjectAttachment[]} */
 export const mockAttachments = [
-  { id: 'a-1', name: '实验方案.pdf', kind: 'pdf' },
-  { id: 'a-2', name: '项目设计图.png', kind: 'image' },
-  { id: 'a-3', name: '参考文献.zip', kind: 'zip' },
-  { id: 'a-4', name: '项目汇总表.xlsx', kind: 'excel' },
+  { id: 'a-1', name: '实验方案.pdf', kind: 'PDF', size: '2.4 MB', uploader: '李同学', uploadedAt: '2026-07-01 11:30' },
+  { id: 'a-2', name: '项目设计图.png', kind: '图片', size: '860 KB', uploader: '王同学', uploadedAt: '2026-07-02 15:20' },
+  { id: 'a-3', name: '参考文献.zip', kind: '压缩包', size: '8.1 MB', uploader: '张老师', uploadedAt: '2026-07-03 09:10' },
+  { id: 'a-4', name: '项目汇总表.xlsx', kind: '表格', size: '124 KB', uploader: '李同学', uploadedAt: '2026-07-06 17:45' },
 ]
 
 /** @type {import('@/domain/models').ProjectActivity[]} */
@@ -288,6 +299,8 @@ export const mockTemplates = [
     name: 'PCR 模板',
     description: '包含模板 DNA、引物、反应体系、退火温度、循环数、电泳结果和结论。',
     category: 'molecular',
+    experimentType: 'PCR',
+    scope: 'system',
     usageCount: 128,
     tag: '使用 128 次',
     fields: [
@@ -302,6 +315,8 @@ export const mockTemplates = [
     name: 'qPCR 模板',
     description: '包含 Ct 值、内参基因、重复孔、熔解曲线和相对表达量计算。',
     category: 'molecular',
+    experimentType: 'qPCR',
+    scope: 'system',
     usageCount: 64,
     tag: '实验室模板',
     fields: [],
@@ -311,9 +326,27 @@ export const mockTemplates = [
     name: '细胞传代模板',
     description: '记录细胞密度、消化时间、传代比例、培养基批号和状态观察。',
     category: 'cell',
+    experimentType: '细胞培养',
+    scope: 'system',
     usageCount: 40,
     tag: '通用',
     fields: [],
+  },
+  {
+    id: 'tpl-4',
+    name: '我的 Western blot 记录',
+    description: '适合课程项目的简化 WB 记录结构，包含上样量、抗体信息和曝光结果。',
+    category: 'protein',
+    experimentType: 'Western blot',
+    scope: 'personal',
+    ownerId: 'u-001',
+    usageCount: 9,
+    tag: '我的模板',
+    fields: [
+      { id: 'f-5', name: '上样量', type: 'number', required: true, unit: 'μg', searchable: true },
+      { id: 'f-6', name: '一抗信息', type: 'text', required: true, unit: '-', searchable: true },
+      { id: 'f-7', name: '曝光结果', type: 'image', required: false, unit: '-', searchable: false },
+    ],
   },
 ]
 
