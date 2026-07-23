@@ -1,10 +1,10 @@
 /**
  * 登录页面（新设计）
  * 用户名密码登录，对接 authStore.login。
- * 已登录用户自动跳转到首页。
+ * 静态原型模式下允许已登录用户直接访问，便于查看登录界面。
  */
 import { useState } from 'react'
-import { Link, useNavigate, Navigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { User, Lock, Eye, EyeOff, CircleAlert, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import AuthLayout from '@/components/auth/AuthLayout'
@@ -16,14 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const login = useAuthStore((s) => s.login)
-  const currentUser = useAuthStore((s) => s.currentUser)
-  const loading = useAuthStore((s) => s.loading)
   const navigate = useNavigate()
-
-  // 已登录 -> 跳转首页
-  if (!loading && currentUser) {
-    return <Navigate to="/" replace />
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -136,27 +129,7 @@ export default function LoginPage() {
           {submitting ? '登录中…' : '登 录'}
         </button>
 
-        {/* 本地测试账号 */}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-medium text-slate-500">本地测试账号</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {['li / 123456', 'wang / 123456', 'zhang / 123456'].map((acc) => (
-              <button
-                key={acc}
-                type="button"
-                onClick={() => {
-                  const [name, pwd] = acc.split(' / ')
-                  setIdentifier(name)
-                  setPassword(pwd)
-                  setError('')
-                }}
-                className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-mono text-xs text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-700"
-              >
-                {acc}
-              </button>
-            ))}
-          </div>
-        </div>
+
       </form>
     </AuthLayout>
   )

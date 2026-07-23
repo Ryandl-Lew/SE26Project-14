@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   FolderKanban,
   ArrowRight,
-  Star,
   Pencil,
   Users,
   NotebookPen,
@@ -19,7 +18,7 @@ import { Button, StatusBadge } from '@/components/ui'
  * @param {import('@/domain/models').Project} props.project
  * @param {(project: import('@/domain/models').Project) => void} [props.onSetCurrent] 设为当前项目
  */
-export default function ProjectCard({ project, onSetCurrent }) {
+function LegacyProjectCard({ project, onSetCurrent }) {
   const navigate = useNavigate()
 
   return (
@@ -84,15 +83,45 @@ export default function ProjectCard({ project, onSetCurrent }) {
         >
           进入项目
         </Button>
-        <Button
-          variant="secondary"
-          icon={Star}
-          onClick={() => onSetCurrent?.(project)}
-          title="设为当前项目"
-          aria-label="设为当前项目"
-        />
-        {/* TODO: 接入编辑 / 归档 / 导出报告能力 */}
         <Button variant="ghost" icon={Pencil} title="编辑项目" aria-label="编辑项目" />
+      </div>
+    </article>
+  )
+}
+
+export default function ProjectCard({ project }) {
+  const navigate = useNavigate()
+
+  return (
+    <article className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-card transition-colors hover:border-brand-200">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+            <FolderKanban size={18} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-[15px] font-semibold text-slate-900">{project.name}</h2>
+            <p className="mt-0.5 font-mono text-xs text-slate-400">{project.code}</p>
+          </div>
+        </div>
+        <StatusBadge kind="project" status={project.status} />
+      </div>
+
+      <p className="mt-4 line-clamp-3 min-h-[3.9rem] text-sm leading-relaxed text-slate-500">
+        {project.description}
+      </p>
+
+      <dl className="mt-4 grid grid-cols-4 divide-x divide-slate-200 rounded-xl border border-slate-100 bg-slate-50/80 px-2 py-3 text-center text-xs">
+        <div className="min-w-0 px-2"><dt className="text-[11px] text-slate-400">负责人</dt><dd className="mt-1 truncate font-medium text-slate-700">{project.ownerName}</dd></div>
+        <div className="min-w-0 px-2"><dt className="text-[11px] text-slate-400">成员</dt><dd className="mt-1 font-medium text-slate-700">{project.memberCount} 人</dd></div>
+        <div className="min-w-0 px-2"><dt className="text-[11px] text-slate-400">实验记录</dt><dd className="mt-1 font-medium text-slate-700">{project.recordCount} 条</dd></div>
+        <div className="min-w-0 px-2"><dt className="text-[11px] text-slate-400">创建时间</dt><dd className="mt-1 truncate font-medium text-slate-700">{project.createdAt}</dd></div>
+      </dl>
+
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <Button className="w-full" icon={ArrowRight} onClick={() => navigate(`/projects/${project.id}`)}>
+          进入项目
+        </Button>
       </div>
     </article>
   )

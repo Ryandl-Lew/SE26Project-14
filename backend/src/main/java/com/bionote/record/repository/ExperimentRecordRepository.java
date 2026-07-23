@@ -28,12 +28,23 @@ public interface ExperimentRecordRepository extends JpaRepository<ExperimentReco
                                         @Param("projectId") String projectId,
                                         Pageable pageable);
 
+    @Query("SELECT r FROM ExperimentRecord r WHERE "
+            + "r.projectId IN :projectIds AND "
+            + "(:keyword IS NULL OR r.title LIKE %:keyword% OR r.code LIKE %:keyword%) AND "
+            + "(:status IS NULL OR r.status = :status)")
+    Page<ExperimentRecord> findFilteredByIds(@Param("projectIds") List<String> projectIds,
+                                              @Param("keyword") String keyword,
+                                              @Param("status") RecordStatus status,
+                                              Pageable pageable);
+
     @Query("SELECT COUNT(r) FROM ExperimentRecord r WHERE r.projectId = :projectId AND r.status = :status")
     long countByProjectIdAndStatus(@Param("projectId") String projectId, @Param("status") RecordStatus status);
 
     long countByStatusNot(RecordStatus status);
 
     long countByStatus(RecordStatus status);
+
+    long countByProjectIdAndStatusNot(String projectId, RecordStatus status);
 
     List<ExperimentRecord> findTop5ByStatusNotOrderByUpdatedAtDesc(RecordStatus status);
 

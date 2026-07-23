@@ -19,8 +19,7 @@ const CATEGORY_CONFIG = {
  * @param {Object} props
  * @param {import('@/domain/models').Template} props.template
  */
-export default function TemplateCard({ template }) {
-  const navigate = useNavigate()
+export default function TemplateCard({ template, onView }) {
   const config = CATEGORY_CONFIG[template.category] ?? CATEGORY_CONFIG.mine
   const Icon = config.icon
 
@@ -38,14 +37,10 @@ export default function TemplateCard({ template }) {
         {template.description}
       </p>
 
-      {/* 操作区：主操作 + 图标化次操作 */}
-      <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
-        {/* TODO: 使用模板时预填字段并携带模板 id */}
-        <Button className="flex-1" icon={ArrowRight} onClick={() => navigate('/records/new')}>
-          使用模板
+      <div className="mt-5 border-t border-slate-100 pt-4">
+        <Button className="w-full" variant="secondary" icon={Eye} onClick={() => onView?.(template)}>
+          查看模板
         </Button>
-        <Button variant="secondary" icon={Eye} title="预览模板" aria-label="预览模板" />
-        <Button variant="ghost" icon={Copy} title="复制模板" aria-label="复制模板" />
       </div>
     </article>
   )

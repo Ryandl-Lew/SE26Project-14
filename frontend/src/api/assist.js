@@ -1,66 +1,66 @@
-/**
- * 搜索、工作台、AI 助手相关 API
- */
-import {
-  mockAiResult,
-  mockDashboardStats,
-  mockNotifications,
-  mockSearchHits,
-  mockTodos,
-} from '@/mocks/data'
-import { mockResponse } from './client'
+import { request } from './client'
 
-/* ------------------------------ 搜索 ------------------------------ */
-
-/**
- * 全局 / 高级搜索
- * @param {import('@/domain/models').SearchFilters} _filters
- * @returns {Promise<import('@/domain/models').SearchHit[]>}
- */
-export function search(_filters) {
-  // TODO: GET /api/search
-  return mockResponse(mockSearchHits)
+export function search(filters) {
+  return request('/search', {
+    params: {
+      keyword: filters.keyword,
+      projectId: filters.projectId,
+      page: filters.page ?? 0,
+      size: filters.size ?? 20,
+    },
+  }).then((res) =>
+    (res?.items ?? res ?? []).map((hit) => ({
+      id: hit.entityId,
+      entityType: hit.entityType?.toLowerCase(),
+      title: hit.title,
+      snippet: hit.snippet ?? '',
+    })),
+  )
 }
 
-/* ----------------------------- 工作台 ----------------------------- */
-
-/**
- * 获取工作台统计卡
- * @returns {Promise<import('@/domain/models').DashboardStat[]>}
- */
 export function fetchDashboardStats() {
-  // TODO: GET /api/dashboard/stats
-  return mockResponse(mockDashboardStats)
+  return request('/dashboard').then((data) => {
+    if (!data) return []
+    return [
+      { label: '我参与的项目', value: data.totalProjects ?? 0, note: '', icon: '\u25A3' },
+      { label: '进行中的记录', value: data.inProgressRecords ?? 0, note: '', icon: '\u2197' },
+      { label: '待审核记录', value: data.pendingReviewRecords ?? 0, note: '', icon: '!' },
+      { label: '实验记录总数', value: data.totalRecords ?? 0, note: '', icon: '\u270E' },
+    ]
+  })
 }
 
-/**
- * 获取我的待办
- * @returns {Promise<import('@/domain/models').TodoItem[]>}
- */
 export function fetchTodos() {
-  // TODO: GET /api/dashboard/todos
-  return mockResponse(mockTodos)
+  return request('/dashboard').then((data) => {
+    if (!data?.pendingTasks) return []
+    return data.pendingTasks.map((t, i) => ({
+      id: t.id ?? `td-${i}`,
+      title: t.recordTitle ?? t.title ?? '',
+      badgeText: t.type === 'REVIEW' ? '待审核' : t.type === 'SUPPLEMENT' ? '需补充' : (t.type ?? '待办'),
+      description: t.projectName ? `所属项目：${t.projectName}` : (t.description ?? ''),
+    }))
+  })
 }
 
-/**
- * 获取提醒 / 通知
- * @returns {Promise<import('@/domain/models').NotificationItem[]>}
- */
 export function fetchNotifications() {
-  // TODO: GET /api/notifications
-  return mockResponse(mockNotifications)
+  return request('/notifications').then((list) =>
+    (list ?? []).map((n) => ({
+      id: n.id,
+      title: n.title,
+      badgeText: n.type ?? '通知',
+      description: n.description ?? '',
+      createdAt: n.createdAt,
+    })),
+  )
 }
 
-/* ---------------------------- AI 助手 ----------------------------- */
-
-/**
- * 调用 AI 助手处理自然语言描述。
- * TODO: POST /api/ai/assist —— 后端转发 LLM，注意流式输出与超时处理
- * @param {import('@/domain/enums').AiFeature} feature 功能类型
- * @param {string} _text 自然语言输入
- * @param {string} [_projectId] 关联项目
- * @returns {Promise<import('@/domain/models').AiAssistResult>}
- */
-export function runAiAssist(feature, _text, _projectId) {
-  return mockResponse({ ...mockAiResult, feature })
+export function runAiAssist(feature, text, _projectId) {
+  return Promise.resolve({
+    feature,
+    structuredFields: [
+      { label: '输入内容', value: text.slice(0, 100) },
+    ],
+    completenessScore: 50,
+    suggestion: 'AI 功能尚未接入后端，请等待后续开发。',
+  })
 }

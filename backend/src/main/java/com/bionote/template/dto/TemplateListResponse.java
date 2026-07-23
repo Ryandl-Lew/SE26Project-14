@@ -7,17 +7,21 @@ public record TemplateListResponse(
         String name,
         String category,
         String description,
+        String experimentType,
         boolean builtIn,
-        Long version
+        Long version,
+        int fieldCount
 ) {
-    public static TemplateListResponse from(ExperimentTemplate template) {
+    public static TemplateListResponse from(ExperimentTemplate template, int fieldCount) {
         return new TemplateListResponse(
                 template.getId(),
                 template.getName(),
                 template.getCategory(),
                 template.getDescription(),
+                template.getCategory(),
                 template.isBuiltIn(),
-                template.getVersion()
+                template.getVersion(),
+                fieldCount
         );
     }
 }

@@ -5,6 +5,8 @@ import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
 import com.bionote.project.dto.*;
 import com.bionote.project.entity.*;
+import com.bionote.record.entity.RecordStatus;
+import com.bionote.record.repository.ExperimentRecordRepository;
 import com.bionote.security.UserPrincipal;
 import com.bionote.user.entity.User;
 import com.bionote.user.repository.UserRepository;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
@@ -33,15 +37,18 @@ public class ProjectService {
     private final MemberRepository memberRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final ExperimentRecordRepository recordRepository;
 
     public ProjectService(ProjectRepository projectRepository,
                           MemberRepository memberRepository,
                           ActivityRepository activityRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          ExperimentRecordRepository recordRepository) {
         this.projectRepository = projectRepository;
         this.memberRepository = memberRepository;
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
+        this.recordRepository = recordRepository;
     }
 
     @Transactional
@@ -62,20 +69,23 @@ public class ProjectService {
         activityRepository.save(activity);
 
         log.info("Project created: id={}, code={}, owner={}", project.getId(), code, principal.username());
-        return ProjectResponse.from(project, principal.name());
+        return ProjectResponse.from(project, principal.name(), 1, 0);
     }
 
     @Transactional(readOnly = true)
-    public ProjectResponse getProject(String id) {
+    public ProjectResponse getProject(String id, UserPrincipal principal) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在"));
+        verifyProjectMember(project.getId(), principal.id());
         User owner = userRepository.findById(project.getOwnerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目负责人不存在"));
-        return ProjectResponse.from(project, owner.getName());
+        long memberCount = memberRepository.countByProjectId(id);
+        long recordCount = recordRepository.countByProjectIdAndStatusNot(id, RecordStatus.ARCHIVED);
+        return ProjectResponse.from(project, owner.getName(), memberCount, recordCount);
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProjectResponse> listProjects(ProjectFilter filter) {
+    public PageResponse<ProjectResponse> listProjects(ProjectFilter filter, UserPrincipal principal) {
         Pageable pageable = PageRequest.of(filter.page(), filter.size(),
                 Sort.by("createdAt").descending());
 
@@ -90,15 +100,35 @@ public class ProjectService {
 
         String keyword = (filter.keyword() != null && !filter.keyword().isBlank())
                 ? filter.keyword() : null;
-        String ownerId = (filter.ownerId() != null && !filter.ownerId().isBlank())
-                ? filter.ownerId() : null;
 
-        Page<Project> page = projectRepository.findFiltered(keyword, status, ownerId, pageable);
+        List<String> memberProjectIds = memberRepository.findByUserId(principal.id())
+                .stream()
+                .map(ProjectMember::getProjectId)
+                .distinct()
+                .toList();
+
+        if (memberProjectIds.isEmpty()) {
+            return new PageResponse<>(List.of(), filter.page(), filter.size(), 0, 0);
+        }
+
+        Page<Project> page = projectRepository.findFilteredByIds(
+                memberProjectIds, keyword, status, pageable);
+
+        Map<String, Long> memberCounts = memberProjectIds.stream()
+                .filter(pid -> page.getContent().stream().anyMatch(p -> p.getId().equals(pid)))
+                .collect(Collectors.toMap(pid -> pid, memberRepository::countByProjectId));
+
+        Map<String, Long> recordCounts = page.getContent().stream()
+                .map(Project::getId)
+                .collect(Collectors.toMap(pid -> pid,
+                        pid -> recordRepository.countByProjectIdAndStatusNot(pid, RecordStatus.ARCHIVED)));
 
         return PageResponse.from(page, project -> {
             User owner = userRepository.findById(project.getOwnerId()).orElse(null);
             String ownerName = owner != null ? owner.getName() : "未知";
-            return ProjectResponse.from(project, ownerName);
+            long mc = memberCounts.getOrDefault(project.getId(), 0L);
+            long rc = recordCounts.getOrDefault(project.getId(), 0L);
+            return ProjectResponse.from(project, ownerName, mc, rc);
         });
     }
 
@@ -119,7 +149,9 @@ public class ProjectService {
         activityRepository.save(activity);
 
         log.info("Project updated: id={}, by={}", project.getId(), principal.username());
-        return ProjectResponse.from(project, principal.name());
+        long memberCount = memberRepository.countByProjectId(id);
+        long recordCount = recordRepository.countByProjectIdAndStatusNot(id, RecordStatus.ARCHIVED);
+        return ProjectResponse.from(project, principal.name(), memberCount, recordCount);
     }
 
     @Transactional
@@ -163,14 +195,17 @@ public class ProjectService {
 
         User owner = userRepository.findById(project.getOwnerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目负责人不存在"));
-        return ProjectResponse.from(project, owner.getName());
+        long memberCount = memberRepository.countByProjectId(id);
+        long recordCount = recordRepository.countByProjectIdAndStatusNot(id, RecordStatus.ARCHIVED);
+        return ProjectResponse.from(project, owner.getName(), memberCount, recordCount);
     }
 
     @Transactional(readOnly = true)
-    public List<ProjectActivityResponse> getActivities(String projectId) {
+    public List<ProjectActivityResponse> getActivities(String projectId, UserPrincipal principal) {
         if (!projectRepository.existsById(projectId)) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "项目不存在");
         }
+        verifyProjectMember(projectId, principal.id());
 
         List<Activity> activities = activityRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
 
@@ -179,6 +214,12 @@ public class ProjectService {
             String actorName = actor != null ? actor.getName() : "未知用户";
             return ProjectActivityResponse.from(activity, actorName);
         }).toList();
+    }
+
+    private void verifyProjectMember(String projectId, String userId) {
+        if (!memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "无权访问该项目");
+        }
     }
 
     private void requireProjectPermission(Project project, UserPrincipal principal, String action) {

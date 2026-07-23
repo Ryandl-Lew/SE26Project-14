@@ -3,7 +3,9 @@ package com.bionote.record.service;
 import com.bionote.common.api.PageResponse;
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
+import com.bionote.project.MemberRepository;
 import com.bionote.project.entity.Activity;
+import com.bionote.project.entity.ProjectMember;
 import com.bionote.project.ActivityRepository;
 import com.bionote.record.dto.*;
 import com.bionote.record.entity.ExperimentRecord;
@@ -39,15 +41,18 @@ public class RecordService {
     private final RecordVersionRepository recordVersionRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     public RecordService(ExperimentRecordRepository experimentRecordRepository,
                          RecordVersionRepository recordVersionRepository,
                          ActivityRepository activityRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         MemberRepository memberRepository) {
         this.experimentRecordRepository = experimentRecordRepository;
         this.recordVersionRepository = recordVersionRepository;
         this.activityRepository = activityRepository;
         this.userRepository = userRepository;
+        this.memberRepository = memberRepository;
     }
 
     @Transactional
@@ -79,17 +84,24 @@ public class RecordService {
         return RecordResponse.from(record, principal.name());
     }
 
+    private void verifyProjectAccess(String projectId, String userId) {
+        if (!memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "无权访问该项目的记录");
+        }
+    }
+
     @Transactional(readOnly = true)
-    public RecordResponse getRecord(String id) {
+    public RecordResponse getRecord(String id, UserPrincipal principal) {
         ExperimentRecord record = experimentRecordRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
+        verifyProjectAccess(record.getProjectId(), principal.id());
         User owner = userRepository.findById(record.getOwnerId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "记录负责人不存在"));
         return RecordResponse.from(record, owner.getName());
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<RecordResponse> listRecords(RecordFilter filter) {
+    public PageResponse<RecordResponse> listRecords(RecordFilter filter, UserPrincipal principal) {
         Pageable pageable = PageRequest.of(filter.page(), filter.size(),
                 Sort.by("updatedAt").descending());
 
@@ -105,14 +117,27 @@ public class RecordService {
             }
         }
 
-        String ownerId = (filter.ownerId() != null && !filter.ownerId().isBlank())
-                ? filter.ownerId() : null;
-
         String projectId = (filter.projectId() != null && !filter.projectId().isBlank())
                 ? filter.projectId() : null;
 
-        Page<ExperimentRecord> page = experimentRecordRepository.findFiltered(
-                keyword, status, ownerId, projectId, pageable);
+        List<String> memberProjectIds = memberRepository.findByUserId(principal.id())
+                .stream()
+                .map(ProjectMember::getProjectId)
+                .distinct()
+                .toList();
+
+        if (memberProjectIds.isEmpty()) {
+            return new PageResponse<>(List.of(), filter.page(), filter.size(), 0, 0);
+        }
+
+        if (projectId != null && !memberProjectIds.contains(projectId)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "无权访问该项目");
+        }
+
+        List<String> queryIds = projectId != null ? List.of(projectId) : memberProjectIds;
+
+        Page<ExperimentRecord> page = experimentRecordRepository.findFilteredByIds(
+                queryIds, keyword, status, pageable);
 
         return PageResponse.from(page, record -> {
             User owner = userRepository.findById(record.getOwnerId()).orElse(null);
@@ -126,13 +151,11 @@ public class RecordService {
         ExperimentRecord record = experimentRecordRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
 
-        if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
-        }
-
         record.setTitle(request.title());
         record.setExperimentType(request.experimentType());
-        record.setExperimentDate(request.experimentDate());
+        if (request.experimentDate() != null) {
+            record.setExperimentDate(request.experimentDate());
+        }
         if (request.location() != null) {
             record.setLocation(request.location());
         }
@@ -188,10 +211,10 @@ public class RecordService {
     }
 
     @Transactional(readOnly = true)
-    public List<RecordVersionResponse> getVersions(String recordId) {
-        if (!experimentRecordRepository.existsById(recordId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在");
-        }
+    public List<RecordVersionResponse> getVersions(String recordId, UserPrincipal principal) {
+        ExperimentRecord record = experimentRecordRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
+        verifyProjectAccess(record.getProjectId(), principal.id());
         return recordVersionRepository.findByRecordIdOrderByVersionNoDesc(recordId)
                 .stream()
                 .map(RecordVersionResponse::from)
@@ -199,10 +222,10 @@ public class RecordService {
     }
 
     @Transactional(readOnly = true)
-    public RecordVersionResponse getVersion(String recordId, Long versionNo) {
-        if (!experimentRecordRepository.existsById(recordId)) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在");
-        }
+    public RecordVersionResponse getVersion(String recordId, Long versionNo, UserPrincipal principal) {
+        ExperimentRecord record = experimentRecordRepository.findById(recordId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "实验记录不存在"));
+        verifyProjectAccess(record.getProjectId(), principal.id());
         RecordVersion version = recordVersionRepository
                 .findByRecordIdAndVersionNo(recordId, versionNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "版本不存在"));

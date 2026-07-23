@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  ArrowLeft,
   Pencil,
   Copy,
   Check,
@@ -14,9 +15,12 @@ import {
   Paperclip,
   FileText,
   MapPin,
+  Download,
+  FileDown,
 } from 'lucide-react'
 import { Button, StatusBadge, Surface, Badge, GelPreview } from '@/components/ui'
-import { fetchRecord, fetchRecordComments } from '@/api'
+import { fetchRecord, fetchRecordComments, fetchRecordAttachments, approveRecord, rejectRecord } from '@/api'
+import { useAuthStore } from '@/store/authStore'
 
 /** 关联对象类型 → 图标 */
 const RELATION_ICONS = {
@@ -26,7 +30,7 @@ const RELATION_ICONS = {
   instrument: FileText,
 }
 
-export default function RecordDetailPage() {
+function LegacyRecordDetailPage() {
   const { recordId } = useParams()
   const navigate = useNavigate()
   const [record, setRecord] = useState(null)
@@ -192,6 +196,133 @@ export default function RecordDetailPage() {
           </Surface>
 
           <GelPreview caption="GFP_gel_0707.png" />
+        </aside>
+      </div>
+    </section>
+  )
+}
+
+export default function RecordDetailPage() {
+  const { recordId } = useParams()
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.currentUser)
+  const [record, setRecord] = useState(null)
+  const [comments, setComments] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [reviewComment, setReviewComment] = useState('')
+
+  useEffect(() => {
+    if (!recordId) return
+    fetchRecord(recordId).then(setRecord)
+    fetchRecordComments(recordId).then(setComments)
+    fetchRecordAttachments(recordId).then(setAttachments)
+  }, [recordId])
+
+  if (!record) return <div className="flex h-64 items-center justify-center text-sm text-slate-400">加载实验记录中…</div>
+
+  const canEdit = record.creatorId === currentUser?.id && ['draft', 'in_progress', 'rejected'].includes(record.status)
+  const isAssignedReviewer = record.assignedReviewerIds?.includes(currentUser?.id)
+  const canReview = (isAssignedReviewer || record.creatorId === currentUser?.id) && record.status === 'pending_review'
+  const canExport = record.status === 'completed'
+
+  const handleDownload = async (fileId, fileName) => {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(`/api/v1/files/${fileId}/download`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+    if (!response.ok) return
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleApprove = async () => {
+    try {
+      await approveRecord(record.id)
+      navigate('/records')
+    } catch {
+    }
+  }
+
+  const handleReject = async () => {
+    if (!reviewComment.trim()) return
+    try {
+      await rejectRecord(record.id, reviewComment)
+      navigate('/records')
+    } catch {
+    }
+  }
+
+  return (
+    <section className="space-y-6">
+      <button type="button" onClick={() => navigate('/records')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 transition-colors hover:text-brand-600">
+        <ArrowLeft size={15} />返回记录工作区
+      </button>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="min-w-0">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-600">实验记录详情</p>
+          <div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl font-bold tracking-tight text-slate-900">{record.title}</h1><StatusBadge kind="record" status={record.status} /></div>
+          <p className="mt-2 text-sm text-slate-500">{record.projectName} / <span className="font-mono text-xs">{record.code}</span>{record.revision && ` / ${record.revision}`}</p>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          {canEdit && <Button icon={Pencil} onClick={() => navigate(`/records/${record.id}/edit`)}>编辑记录</Button>}
+          {canExport && <Button variant="secondary" icon={FileDown}>导出 PDF</Button>}
+          {canExport && <Button variant="secondary" icon={Download}>导出 Markdown</Button>}
+        </div>
+      </div>
+
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
+        <Surface>
+          <div className="grid gap-3 border-b border-slate-100 pb-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[['实验类型', record.experimentType], ['实验日期', record.experimentDate], ['记录创建者', record.ownerName], ['实验地点', record.location]].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-slate-50 px-4 py-3"><div className="text-xs text-slate-400">{label}</div><div className="mt-1 text-sm font-medium text-slate-900">{value}</div></div>
+            ))}
+          </div>
+
+          <div className="mt-6"><h2 className="text-base font-semibold text-slate-900">实验目的</h2><p className="mt-2 text-sm leading-7 text-slate-600">{record.purpose}</p></div>
+          <div className="mt-7 space-y-7">
+            {record.sections.map((section) => (
+              <div key={section.id}>
+                <h2 className="mb-2.5 flex items-center gap-2.5 text-base font-semibold text-slate-900"><span className="h-4 w-1 rounded-full bg-brand-500" />{section.title}</h2>
+                {section.body && <p className="text-sm leading-7 text-slate-600">{section.body}</p>}
+                {section.table && <div className="table-wrap mt-3"><table className="data-table"><thead><tr><th>组分</th><th className="text-right">体积 / 用量</th></tr></thead><tbody>{section.table.map((row) => <tr key={row.component}><td>{row.component}</td><td className="text-right font-mono">{row.amount}</td></tr>)}</tbody></table></div>}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 border-t border-slate-100 pt-6"><h2 className="text-base font-semibold text-slate-900">审核记录</h2><div className="mt-4 space-y-3">{comments.map((comment) => <div key={comment.id} className="rounded-lg border border-slate-200 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-sm font-medium text-slate-900">{comment.authorName}</span><span className="text-xs text-slate-400">{comment.createdAt}</span></div><p className="mt-2 text-sm leading-6 text-slate-600">{comment.content}</p></div>)}</div></div>
+        </Surface>
+
+        <aside className="space-y-5 xl:sticky xl:top-24">
+          <Surface title="附件">
+            <div className="space-y-2.5">
+              {attachments.length === 0 && (
+                <p className="py-3 text-center text-xs text-slate-400">暂无附件</p>
+              )}
+              {attachments.map((file) => (
+                <div key={file.id} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex min-w-0 items-center gap-2.5"><Paperclip size={15} className="shrink-0 text-brand-500" /><span className="truncate text-sm font-medium text-slate-700">{file.name}</span></div>
+                   <div className="mt-3 flex gap-1.5 border-t border-slate-100 pt-2.5">
+                    <button type="button" onClick={() => handleDownload(file.id, file.name)} className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-slate-500 hover:bg-slate-100"><Download size={13} />下载</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+
+          {canReview && (
+            <Surface title="审核当前提交">
+              <label className="field-label">审核意见</label>
+              <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} className="input min-h-28" placeholder="退回修改时必须填写具体意见；通过时可选填。" />
+              <div className="mt-4 grid grid-cols-2 gap-2.5"><Button variant="danger" icon={Undo2} disabled={!reviewComment.trim()} onClick={handleReject}>退回修改</Button><Button icon={Check} onClick={handleApprove}>审核通过</Button></div>
+            </Surface>
+          )}
+
+          {!canReview && record.status === 'pending_review' && <Surface title="审核状态"><p className="text-sm leading-6 text-slate-500">正在由 <span className="font-semibold text-slate-900">{record.assignedReviewerName ?? '指定审核人'}</span> 审核</p></Surface>}
         </aside>
       </div>
     </section>

@@ -53,6 +53,9 @@ public class ExperimentRecord extends BaseEntity {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
+    @Column(name = "reviewer_ids", columnDefinition = "TEXT")
+    private String reviewerIds;
+
     protected ExperimentRecord() {
     }
 
@@ -116,6 +119,10 @@ public class ExperimentRecord extends BaseEntity {
         return archivedAt;
     }
 
+    public String getReviewerIds() {
+        return reviewerIds;
+    }
+
     public void setTemplateId(String templateId) {
         this.templateId = templateId;
     }
@@ -146,5 +153,9 @@ public class ExperimentRecord extends BaseEntity {
 
     public void setArchivedAt(Instant archivedAt) {
         this.archivedAt = archivedAt;
+    }
+
+    public void setReviewerIds(String reviewerIds) {
+        this.reviewerIds = reviewerIds;
     }
 }

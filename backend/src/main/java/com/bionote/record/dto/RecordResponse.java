@@ -21,7 +21,8 @@ public record RecordResponse(
         Long version,
         Instant createdAt,
         Instant updatedAt,
-        Instant archivedAt
+        Instant archivedAt,
+        String reviewerIds
 ) {
     public static RecordResponse from(ExperimentRecord record, String ownerName) {
         return new RecordResponse(
@@ -40,7 +41,8 @@ public record RecordResponse(
                 record.getVersion(),
                 record.getCreatedAt(),
                 record.getUpdatedAt(),
-                record.getArchivedAt()
+                record.getArchivedAt(),
+                record.getReviewerIds()
         );
     }
 }

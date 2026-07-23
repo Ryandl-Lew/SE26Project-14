@@ -17,6 +17,9 @@ import {
   Users,
   Clock,
   ChevronRight,
+  Download,
+  Eye,
+  FileCheck2,
 } from 'lucide-react'
 import {
   Button,
@@ -36,6 +39,7 @@ import {
   fetchProjectTimeline,
   fetchRecords,
 } from '@/api'
+import { useAuthStore } from '@/store/authStore'
 
 /** 统计卡图标配置 */
 const STAT_CONFIG = [
@@ -45,7 +49,7 @@ const STAT_CONFIG = [
   { icon: Paperclip, tone: 'violet' },
 ]
 
-export default function ProjectDetailPage() {
+function LegacyProjectDetailPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
   const [project, setProject] = useState(null)
@@ -148,7 +152,7 @@ export default function ProjectDetailPage() {
           </div>
 
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
-            <Surface title="项目目标">
+            <Surface title="项目描述">
               <p className="text-sm leading-relaxed text-slate-600">{project.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {project.tags.map((tag) => (
@@ -311,6 +315,185 @@ export default function ProjectDetailPage() {
               ))}
             </div>
           </Surface>
+        </div>
+      )}
+    </section>
+  )
+}
+
+export default function ProjectDetailPage() {
+  const { projectId } = useParams()
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.currentUser)
+  const [project, setProject] = useState(null)
+  const [records, setRecords] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [timeline, setTimeline] = useState([])
+  const [members, setMembers] = useState([])
+  const [activeTab, setActiveTab] = useState('overview')
+  const [previewFile, setPreviewFile] = useState(null)
+  const [showInvite, setShowInvite] = useState(false)
+
+  useEffect(() => {
+    if (!projectId) return
+    Promise.all([
+      fetchProject(projectId).then((value) => setProject(value ?? null)),
+      fetchRecords(projectId).then(setRecords),
+      fetchProjectAttachments(projectId).then(setAttachments),
+      fetchProjectTimeline(projectId).then(setTimeline),
+      fetchProjectMembers(projectId).then(setMembers),
+    ])
+  }, [projectId])
+
+  if (!project) {
+    return <div className="flex h-64 items-center justify-center text-sm text-slate-400">加载项目中…</div>
+  }
+
+  const canReview = ['owner', 'reviewer'].includes(project.currentUserRole)
+  const isOwner = project.currentUserRole === 'owner'
+  const pendingRecords = records.filter((record) => record.status === 'pending_review')
+  const sortedRecords = [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const tabs = [
+    { key: 'overview', label: '概览' },
+    { key: 'timeline', label: '时间线' },
+    { key: 'records', label: `实验记录 ${records.length}` },
+    { key: 'members', label: `成员 ${members.length}` },
+    ...(canReview ? [{ key: 'reviews', label: `待审核 ${pendingRecords.length}` }] : []),
+  ]
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <button type="button" onClick={() => navigate('/projects')} className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-brand-600">
+          <ArrowLeft size={15} />返回项目列表
+        </button>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
+              <StatusBadge kind="project" status={project.status} />
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+              <span className="font-mono text-xs">{project.code}</span>
+              <span className="inline-flex items-center gap-1.5"><Users size={14} />{project.ownerName} · {project.memberCount} 人</span>
+              <span className="inline-flex items-center gap-1.5"><Clock size={14} />创建于 {project.createdAt}</span>
+            </div>
+          </div>
+          {project.status === 'active' && project.currentUserRole !== 'reviewer' && (
+            <Button icon={Plus} onClick={() => navigate(`/records/new?project=${project.id}`)}>新建实验</Button>
+          )}
+        </div>
+      </div>
+
+      <Tabs items={tabs} activeKey={activeTab} onChange={setActiveTab} />
+
+      {activeTab === 'overview' && (
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr),380px] animate-fade-in">
+          <Surface title="项目详细描述">
+            <p className="text-sm leading-7 text-slate-600">{project.description}</p>
+          </Surface>
+
+          <Surface title="项目附件" extra={<Badge tone="gray">{attachments.length}</Badge>}>
+            <div className="space-y-2.5">
+              {attachments.map((file) => (
+                <div key={file.id} className="rounded-lg border border-slate-200 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500"><Paperclip size={15} /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">{file.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">{file.size} · {file.uploader} · {file.uploadedAt}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+                    <Button variant="ghost" size="sm" icon={Eye} onClick={() => setPreviewFile(file)}>预览</Button>
+                    <Button variant="ghost" size="sm" icon={Download}>下载</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Surface>
+        </div>
+      )}
+
+      {activeTab === 'timeline' && (
+        <Surface title="项目动态时间线" className="animate-fade-in">
+          <ol className="relative ml-3 border-l border-slate-200 pl-7">
+            {timeline.map((item, index) => (
+              <li key={item.id} className={`${index === timeline.length - 1 ? 'pb-1' : 'pb-8'} relative`}>
+                <span className="absolute -left-[34px] top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-brand-500 bg-white" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-slate-400">{item.date} {item.time}</span>
+                  <Badge tone="blue">{item.category}</Badge>
+                </div>
+                <h3 className="mt-2 text-sm font-semibold text-slate-900">{item.title}</h3>
+                <p className="mt-1 text-sm text-slate-500">{item.summary}</p>
+              </li>
+            ))}
+          </ol>
+        </Surface>
+      )}
+
+      {activeTab === 'records' && (
+        <Surface className="animate-fade-in">
+          <div className="-mx-5 divide-y divide-slate-100">
+            {sortedRecords.map((record) => (
+              <button key={record.id} type="button" onClick={() => navigate(`/records/${record.id}`)} className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-slate-50">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><NotebookPen size={16} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2.5"><span className="truncate text-sm font-medium text-slate-900">{record.title}</span><StatusBadge kind="record" status={record.status} /></span>
+                  <span className="mt-1 block text-xs text-slate-400">创建于 {record.createdAt} · {record.ownerName} · {record.experimentType}</span>
+                </span>
+                <ChevronRight size={16} className="text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </Surface>
+      )}
+
+      {activeTab === 'members' && (
+        <Surface title="项目成员" className="animate-fade-in" extra={isOwner && <Button size="sm" icon={UserPlus} onClick={() => setShowInvite(true)}>邀请成员</Button>}>
+          <div className="table-wrap">
+            <table className="data-table"><thead><tr><th>成员</th><th>项目角色</th><th>权限</th><th>加入时间</th><th>最近活跃</th></tr></thead>
+              <tbody>{members.map((member) => (
+                <tr key={member.user.id}>
+                  <td><span className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{member.user.avatarText}</span><span><span className="block font-medium text-slate-900">{member.user.name}</span><span className="block text-xs text-slate-400">{member.user.email}</span></span></span></td>
+                  <td><Badge tone={PROJECT_ROLE_TONES[member.role]}>{PROJECT_ROLE_LABELS[member.role]}</Badge></td>
+                  <td className="text-slate-500">{member.permissionSummary}</td><td>{member.joinedAt}</td><td>{member.lastActiveAt}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </Surface>
+      )}
+
+      {activeTab === 'reviews' && canReview && (
+        <Surface title="待审核实验记录" className="animate-fade-in" extra={<Badge tone="amber">仅负责人和审核者可见</Badge>}>
+          {pendingRecords.length > 0 ? (
+            <div className="-mx-5 divide-y divide-slate-100">
+              {pendingRecords.map((record) => (
+                <button key={record.id} type="button" onClick={() => navigate(`/records/${record.id}`)} className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-slate-50">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600"><FileCheck2 size={17} /></span>
+                  <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-sm font-semibold text-slate-900">{record.title}</span><Badge tone="amber">{record.revision}</Badge></span><span className="mt-1 block text-xs text-slate-500">{record.ownerName} 提交 · {record.updatedAt} · {record.experimentType}</span></span>
+                  <span className="text-xs font-medium text-brand-600">查看并审核</span>
+                </button>
+              ))}
+            </div>
+          ) : <EmptyState icon={FileCheck2} title="暂无待审核记录" description="已处理的任务会自动从列表中移除。" />}
+        </Surface>
+      )}
+
+      {previewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-pop">
+            <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-slate-900">{previewFile.name}</h2><p className="mt-1 text-sm text-slate-500">{previewFile.kind} · {previewFile.size}</p></div><Button variant="ghost" onClick={() => setPreviewFile(null)}>关闭</Button></div>
+            <div className="mt-5 flex min-h-72 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center text-sm text-slate-400">文件预览区域<br />当前静态原型不加载真实文件内容</div>
+          </div>
+        </div>
+      )}
+
+      {showInvite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-pop"><h2 className="text-lg font-semibold text-slate-900">邀请项目成员</h2><p className="mt-1 text-sm text-slate-500">仅可邀请已注册用户，接受后默认成为编辑成员。</p><label className="field-label mt-5">注册邮箱</label><input className="input" placeholder="name@example.com" type="email" /><div className="mt-6 flex justify-end gap-2"><Button variant="secondary" onClick={() => setShowInvite(false)}>取消</Button><Button onClick={() => setShowInvite(false)}>发送邀请</Button></div></div>
         </div>
       )}
     </section>

@@ -70,7 +70,7 @@ function SectionTitle({ children, count, action }) {
   )
 }
 
-export default function DashboardPage() {
+function LegacyDashboardPage() {
   const navigate = useNavigate()
   const currentUser = useAuthStore((s) => s.currentUser)
   const [loading, setLoading] = useState(true)
@@ -304,6 +304,136 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+const TASK_STYLES = {
+  rejected: { icon: Undo2, box: 'bg-red-50 text-red-600', label: '需修改' },
+  review: { icon: Hourglass, box: 'bg-amber-50 text-amber-600', label: '待审核' },
+  todo: { icon: ListChecks, box: 'bg-brand-50 text-brand-600', label: '待办' },
+}
+
+export default function DashboardPage() {
+  const navigate = useNavigate()
+  const currentUser = useAuthStore((state) => state.currentUser)
+  const [records, setRecords] = useState([])
+  const [todos, setTodos] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([fetchRecords().then(setRecords), fetchTodos().then(setTodos)]).finally(() =>
+      setLoading(false),
+    )
+  }, [])
+
+  const tasks = useMemo(() => {
+    const changes = records
+      .filter((record) => record.creatorId === currentUser?.id && record.status === 'rejected')
+      .map((record) => ({
+        id: `change-${record.id}`,
+        type: 'rejected',
+        title: record.title,
+        description: `${record.projectName} · 查看审核意见并补充记录`,
+        time: record.updatedAt,
+        status: record.status,
+        action: '继续修改',
+        path: `/records/${record.id}/edit`,
+      }))
+
+    const reviews = records
+      .filter(
+        (record) =>
+          record.assignedReviewerId === currentUser?.id && record.status === 'pending_review',
+      )
+      .map((record) => ({
+        id: `review-${record.id}`,
+        type: 'review',
+        title: record.title,
+        description: `${record.ownerName} 提交 ${record.revision} · ${record.projectName}`,
+        time: record.updatedAt,
+        status: record.status,
+        action: '开始审核',
+        path: `/records/${record.id}`,
+      }))
+
+    const general = todos.map((todo) => ({
+      id: todo.id,
+      type: 'todo',
+      title: todo.title,
+      description: todo.description,
+      time: todo.badgeText,
+    }))
+    return [...changes, ...reviews, ...general]
+  }, [currentUser?.id, records, todos])
+
+  return (
+    <section>
+      <div className="mb-6">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-600">工作台</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">待办事项</h1>
+        <p className="mt-1.5 text-sm text-slate-500">
+          集中处理被退回的记录、指派给你的审核任务和课程项目提醒。
+        </p>
+      </div>
+
+      <div className="mx-auto max-w-5xl">
+        {loading ? (
+          <SkeletonRows />
+        ) : tasks.length > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+              <span className="text-sm font-semibold text-slate-900">需要你处理</span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium tabular-nums text-slate-500">
+                {tasks.length} 项
+              </span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {tasks.map((task) => {
+                const config = TASK_STYLES[task.type]
+                const Icon = config.icon
+                const Wrapper = task.path ? 'button' : 'div'
+                return (
+                  <Wrapper
+                    key={task.id}
+                    {...(task.path
+                      ? { type: 'button', onClick: () => navigate(task.path) }
+                      : {})}
+                    className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-slate-50"
+                  >
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${config.box}`}>
+                      <Icon size={17} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-slate-900">{task.title}</span>
+                        {task.status ? (
+                          <StatusBadge kind="record" status={task.status} />
+                        ) : (
+                          <span className="text-xs text-slate-400">{config.label}</span>
+                        )}
+                      </span>
+                      <span className="mt-1 block truncate text-xs text-slate-500">{task.description}</span>
+                    </span>
+                    <span className="hidden shrink-0 text-xs text-slate-400 sm:block">{task.time}</span>
+                    {task.action && (
+                      <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600">
+                        {task.action}<ArrowUpRight size={13} />
+                      </span>
+                    )}
+                  </Wrapper>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            icon={ListChecks}
+            title="待办已清空"
+            description="当前没有需要处理的审核、修改或项目提醒。"
+          />
         )}
       </div>
     </section>

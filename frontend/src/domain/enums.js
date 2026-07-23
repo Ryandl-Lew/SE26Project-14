@@ -36,34 +36,32 @@ export const PERMISSION_VALUE_TONES = {
 
 /* ------------------------------- 项目 -------------------------------- */
 
-/** @typedef {'active'|'paused'|'completed'|'reviewing'|'archived'} ProjectStatus */
+/** @typedef {'in_progress'|'active'|'completed'|'pending_review'|'archived'} ProjectStatus */
 export const PROJECT_STATUS_LABELS = {
+  in_progress: '进行中',
   active: '进行中',
-  paused: '暂停',
   completed: '已完成',
-  reviewing: '待复核',
+  pending_review: '待复核',
   archived: '已归档',
 }
 
 export const PROJECT_STATUS_TONES = {
+  in_progress: 'blue',
   active: 'blue',
-  paused: 'amber',
   completed: 'green',
-  reviewing: 'amber',
+  pending_review: 'amber',
   archived: 'gray',
 }
 
 /* ------------------------------ 实验记录 ------------------------------ */
 
-/** @typedef {'draft'|'in_progress'|'pending_review'|'completed'|'rejected'|'supplement'|'archived'} RecordStatus */
+/** @typedef {'draft'|'in_progress'|'pending_review'|'completed'|'rejected'} RecordStatus */
 export const RECORD_STATUS_LABELS = {
   draft: '草稿',
   in_progress: '进行中',
   pending_review: '待审核',
   completed: '已完成',
-  rejected: '退回修改',
-  supplement: '待补充',
-  archived: '已归档',
+  rejected: '需修改',
 }
 
 export const RECORD_STATUS_TONES = {
@@ -72,26 +70,26 @@ export const RECORD_STATUS_TONES = {
   pending_review: 'amber',
   completed: 'green',
   rejected: 'red',
-  supplement: 'amber',
-  archived: 'gray',
 }
 
 /* ------------------------------- 模板 -------------------------------- */
 
 /** @typedef {'molecular'|'cell'|'protein'|'immunology'|'mine'} TemplateCategory */
 export const TEMPLATE_CATEGORY_LABELS = {
+  all: '全部模板',
+  mine: '我的模板',
   molecular: '分子生物学',
   cell: '细胞生物学',
   protein: '蛋白实验',
   immunology: '免疫实验',
-  mine: '我的模板',
 }
 
-/** @typedef {'text'|'number'|'date'|'table'|'image'|'sample_picker'|'reagent_picker'} TemplateFieldType */
+/** @typedef {'text'|'number'|'date'|'table'|'image'|'textarea'|'sample_picker'|'reagent_picker'} TemplateFieldType */
 export const TEMPLATE_FIELD_TYPE_LABELS = {
   text: '文本',
   number: '数字',
   date: '日期',
+  textarea: '多行文本',
   table: '表格',
   image: '图片上传',
   sample_picker: '样品选择器',

@@ -3,6 +3,8 @@ package com.bionote.search.service;
 import com.bionote.common.api.PageResponse;
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
+import com.bionote.project.MemberRepository;
+import com.bionote.project.entity.ProjectMember;
 import com.bionote.search.dto.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,39 +20,19 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * 全局/项目内搜索服务。
- *
- * <h3>职责</h3>
- * <ul>
- *   <li>权限过滤：基于当前用户可访问的项目 ID 列表限制搜索结果。</li>
- *   <li>聚合查询：跨 {@code projects}、{@code experiment_records}、
- *       {@code attachments} 三张表进行 LIKE 搜索。</li>
- *   <li>结果统一化：将各表异构行转换为统一的 {@link SearchHit} DTO。</li>
- *   <li>排序与分页：在内存中按更新时间降序排列后手动分页。</li>
- * </ul>
- *
- * <h3>TODO — 安全增强</h3>
- * <ul>
- *   <li>{@link #getAccessibleProjectIds(String)} 当前为 Mock 实现，
- *       待 P2 提供 {@code ProjectAccessService} 后替换。</li>
- *   <li>全文搜索性能优化：当前使用 SQL LIKE，后续可接入 MySQL
- *       全文索引（FULLTEXT）或 Elasticsearch。</li>
- *   <li>高亮片段生成可提取为独立工具类，供其他搜索场景复用。</li>
- * </ul>
- */
 @Service
 public class SearchService {
 
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
 
-    /** 摘要片段中关键词前后的字符半径。 */
     private static final int SNIPPET_RADIUS = 80;
 
     private final JdbcTemplate jdbcTemplate;
+    private final MemberRepository memberRepository;
 
-    public SearchService(JdbcTemplate jdbcTemplate) {
+    public SearchService(JdbcTemplate jdbcTemplate, MemberRepository memberRepository) {
         this.jdbcTemplate = jdbcTemplate;
+        this.memberRepository = memberRepository;
     }
 
     // ──────────────────────────────────────────────
@@ -117,26 +99,18 @@ public class SearchService {
         return new PageResponse<>(pageItems, page, size, total, totalPages);
     }
 
-    // ──────────────────────────────────────────────
-    // 权限 Mock
-    // ──────────────────────────────────────────────
-
-    /**
-     * 获取当前用户可访问的项目 ID 列表。
-     * <p>
-     * <strong>TODO:</strong> 当前为 Mock 实现，返回固定的演示数据。
-     * 待 P2 阶段接入 {@code com.bionote.project.service.ProjectAccessService} 后，
-     * 替换为 {@code projectAccessService.getAccessibleProjectIds(userId)}。
-     * </p>
-     *
-     * @param userId 用户 ID
-     * @return 可访问的项目 ID 列表
-     */
     private List<String> getAccessibleProjectIds(String userId) {
-        // TODO: 调用 P2 提供的 ProjectAccessService
-        // return projectAccessService.getAccessibleProjectIds(userId);
-        log.debug("Mock getAccessibleProjectIds for userId={}", userId);
-        return new ArrayList<>(List.of("p-001", "p-002"));
+        List<ProjectMember> members = memberRepository.findByUserId(userId);
+        if (members.isEmpty()) {
+            log.debug("用户 {} 不是任何项目的成员，返回空列表", userId);
+            return List.of();
+        }
+        List<String> projectIds = members.stream()
+                .map(ProjectMember::getProjectId)
+                .distinct()
+                .toList();
+        log.debug("用户 {} 可访问的项目: {}", userId, projectIds);
+        return projectIds;
     }
 
     // ──────────────────────────────────────────────
@@ -268,9 +242,12 @@ public class SearchService {
 
         String snippet = buildSnippet(title, keyword);
         if (contentJson != null && !contentJson.isBlank()) {
-            String contentSnippet = buildSnippet(contentJson, keyword);
-            if (!contentSnippet.isEmpty()) {
-                snippet = contentSnippet;
+            String plainText = extractRecordText(contentJson);
+            if (!plainText.isEmpty()) {
+                String contentSnippet = buildSnippet(plainText, keyword);
+                if (!contentSnippet.isEmpty()) {
+                    snippet = contentSnippet;
+                }
             }
         }
 
@@ -282,6 +259,34 @@ public class SearchService {
                 "/projects/" + projectId + "/records/" + id,
                 toOffsetDateTime(updatedAt)
         );
+    }
+
+    /** 从 content_json 中提取纯文本（purpose + section bodies），避免在搜索结果中展示原始 JSON。 */
+    private String extractRecordText(String contentJson) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            @SuppressWarnings("unchecked")
+            var root = mapper.readValue(contentJson, java.util.Map.class);
+            StringBuilder sb = new StringBuilder();
+            Object purpose = root.get("purpose");
+            if (purpose instanceof String s && !s.isBlank()) {
+                sb.append(s).append(" ");
+            }
+            Object sections = root.get("sections");
+            if (sections instanceof java.util.List<?> list) {
+                for (Object section : list) {
+                    if (section instanceof java.util.Map<?, ?> map) {
+                        Object body = map.get("body");
+                        if (body instanceof String s && !s.isBlank()) {
+                            sb.append(s).append(" ");
+                        }
+                    }
+                }
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     /** 将 attachments 行映射为 SearchHit。 */

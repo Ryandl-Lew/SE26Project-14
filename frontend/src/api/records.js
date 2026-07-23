@@ -1,81 +1,147 @@
-/**
- * 实验记录相关 API
- * 当前返回 mock 数据；函数签名即未来后端契约。
- */
-import { mockComments, mockRecordDetail, mockRecords } from '@/mocks/data'
-import { mockResponse } from './client'
+import { request } from './client'
 
-/**
- * 按项目获取实验记录列表
- * @param {string} [projectId]
- * @param {import('@/domain/common').PageQuery} [_query]
- * @returns {Promise<import('@/domain/models').ExperimentRecordSummary[]>}
- */
-export function fetchRecords(projectId, _query) {
-  // TODO: GET /api/records?projectId=
-  const list = projectId
-    ? mockRecords.filter((r) => r.projectId === projectId)
-    : mockRecords
-  return mockResponse(list)
+function formatInstant(instant) {
+  if (!instant) return ''
+  const d = new Date(instant)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/**
- * 获取实验记录详情
- * @param {string} _id
- * @returns {Promise<import('@/domain/models').ExperimentRecord>}
- */
-export function fetchRecord(_id) {
-  // TODO: GET /api/records/:id
-  return mockResponse(mockRecordDetail)
+function mapRecordSummary(r) {
+  const reviewerList = r.reviewerIds ? r.reviewerIds.split(',').map((id) => id.trim()) : []
+  return {
+    id: r.id,
+    code: r.code,
+    title: r.title,
+    experimentType: r.experimentType,
+    status: (r.status ?? 'DRAFT').toLowerCase(),
+    ownerName: r.ownerName ?? '',
+    creatorId: r.ownerId,
+    assignedReviewerIds: reviewerList,
+    assignedReviewerId: reviewerList.length > 0 ? reviewerList[0] : null,
+    assignedReviewerName: null,
+    revision: r.version != null ? `R${r.version}` : null,
+    projectId: r.projectId,
+    projectName: '',
+    createdAt: formatInstant(r.createdAt),
+    updatedAt: formatInstant(r.updatedAt),
+    version: r.version,
+  }
 }
 
-/**
- * 获取实验记录的评论 / 审核意见 / 版本历史
- * @param {string} _recordId
- * @returns {Promise<import('@/domain/models').Comment[]>}
- */
-export function fetchRecordComments(_recordId) {
-  // TODO: GET /api/records/:id/comments
-  return mockResponse(mockComments)
+function parseContentJson(contentJson) {
+  if (!contentJson) return { sections: [], relations: [], purpose: '', location: '' }
+  try {
+    return typeof contentJson === 'string' ? JSON.parse(contentJson) : contentJson
+  } catch {
+    return { sections: [], relations: [], purpose: '', location: '' }
+  }
 }
 
-/**
- * 保存草稿（新建或更新）
- * @param {import('@/domain/models').RecordDraftInput} input
- * @returns {Promise<import('@/domain/models').ExperimentRecord>}
- */
+export function fetchRecords(projectId, query) {
+  const params = { ...query }
+  if (projectId) params.projectId = projectId
+  return request('/records', { params }).then((res) =>
+    (res?.items ?? res ?? []).map(mapRecordSummary),
+  )
+}
+
+export function fetchRecord(id) {
+  return request(`/records/${id}`).then((r) => {
+    if (!r) return undefined
+    const content = parseContentJson(r.contentJson)
+    return {
+      ...mapRecordSummary(r),
+      experimentDate: r.experimentDate ?? '',
+      location: r.location ?? content.location ?? '',
+      purpose: content.purpose ?? '',
+      sections: content.sections ?? [],
+      relations: content.relations ?? [],
+      templateFields: content.templateFields ?? {},
+    }
+  })
+}
+
+export function fetchRecordComments(recordId) {
+  return request(`/records/${recordId}/comments`).then((list) =>
+    (list ?? []).map((c) => ({
+      id: c.id,
+      authorName: c.authorName ?? '',
+      content: c.content ?? '',
+      category: c.category ?? '评论',
+      createdAt: formatInstant(c.createdAt),
+    })),
+  )
+}
+
 export function saveRecordDraft(input) {
-  // TODO: POST /api/records 或 PUT /api/records/:id
-  return mockResponse({ ...mockRecordDetail, title: input.title })
+  if (input.id) {
+    return request(`/records/${input.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: input.title,
+        experimentType: input.experimentType,
+        experimentDate: input.experimentDate,
+        location: input.location ?? '',
+        content: JSON.stringify({
+          purpose: input.purpose ?? '',
+          sections: input.sections ?? [],
+          relations: input.relations ?? [],
+          templateFields: input.templateFields ?? {},
+        }),
+        changeReason: '保存草稿',
+      }),
+    }).then(mapRecordSummary)
+  }
+  return request('/records', {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: input.projectId,
+      templateId: input.templateId,
+      title: input.title,
+      experimentType: input.experimentType,
+      experimentDate: input.experimentDate,
+      location: input.location ?? '',
+    }),
+  }).then(mapRecordSummary)
 }
 
-/**
- * 提交审核
- * @param {string} _id
- * @returns {Promise<void>}
- */
-export function submitRecordForReview(_id) {
-  // TODO: POST /api/records/:id/submit
-  return mockResponse(undefined)
+export function submitRecordForReview(id, reviewerIds) {
+  return request(`/records/${id}/submit`, {
+    method: 'POST',
+    body: JSON.stringify({
+      changeReason: '提交审核',
+      reviewerIds: reviewerIds ?? [],
+    }),
+  })
 }
 
-/**
- * 审核通过
- * @param {string} _id
- * @returns {Promise<void>}
- */
-export function approveRecord(_id) {
-  // TODO: POST /api/records/:id/approve
-  return mockResponse(undefined)
+export function approveRecord(id) {
+  return request(`/records/${id}/review`, {
+    method: 'POST',
+    body: JSON.stringify({ decision: 'APPROVE' }),
+  })
 }
 
-/**
- * 退回修改
- * @param {string} _id
- * @param {string} [_reason]
- * @returns {Promise<void>}
- */
-export function rejectRecord(_id, _reason) {
-  // TODO: POST /api/records/:id/reject
-  return mockResponse(undefined)
+export function rejectRecord(id, reason) {
+  return request(`/records/${id}/review`, {
+    method: 'POST',
+    body: JSON.stringify({
+      decision: 'REJECT',
+      reason: reason ?? '需要修改',
+    }),
+  })
+}
+
+export function fetchRecordAttachments(recordId) {
+  return request(`/records/${recordId}/attachments`).then((list) =>
+    (list ?? []).map((a) => ({
+      id: a.id,
+      name: a.originalName,
+      kind: a.mimeType ?? '',
+      size: a.size ?? 0,
+      uploader: a.uploadedBy ?? '',
+      uploadedAt: a.createdAt,
+    })),
+  )
 }

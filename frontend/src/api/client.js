@@ -1,21 +1,6 @@
 /** 后端基础地址，可通过 VITE_API_BASE_URL 覆盖。 */
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-/** 模拟网络延迟（毫秒） */
-const MOCK_DELAY = 200
-
-/**
- * 将 mock 数据包装为 Promise，模拟异步请求。
- * @template T
- * @param {T} data 要返回的数据
- * @returns {Promise<T>}
- */
-export function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), MOCK_DELAY)
-  })
-}
-
 export class ApiError extends Error {
   constructor(message, code, fieldErrors, status) {
     super(message)
@@ -27,24 +12,41 @@ export class ApiError extends Error {
 }
 
 /**
+ * 将对象序列化为 URL 查询字符串（忽略 undefined/null 值）。
+ * @param {Record<string, unknown>} params
+ * @returns {string}
+ */
+function toQueryString(params) {
+  const parts = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+  if (parts.length === 0) return ''
+  return '?' + parts.join('&')
+}
+
+/**
  * 发送请求并解包后端统一 ApiResponse。
  * @param {string} path
- * @param {RequestInit} [options]
+ * @param {RequestInit & { params?: Record<string, unknown> }} [options]
  */
 export async function request(path, options = {}) {
+  const { params, ...init } = options
   const token = localStorage.getItem('auth_token')
-  const headers = new Headers(options.headers)
+  const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
-  if (options.body && !headers.has('Content-Type')) {
+  if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
+  const queryString = params ? toQueryString(params) : ''
+  const url = `${API_BASE_URL}${path}${queryString}`
+
   let response
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+    response = await fetch(url, { ...init, headers })
   } catch {
     throw new ApiError('无法连接服务器，请稍后重试', 'NETWORK_ERROR', null, 0)
   }

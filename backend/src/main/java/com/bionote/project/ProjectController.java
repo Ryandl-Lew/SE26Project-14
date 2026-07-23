@@ -31,15 +31,17 @@ public class ProjectController {
     }
 
     @GetMapping
-    @Operation(summary = "分页查询项目列表")
-    public ApiResponse<PageResponse<ProjectResponse>> listProjects(ProjectFilter filter) {
-        return ApiResponse.success(projectService.listProjects(filter));
+    @Operation(summary = "分页查询项目列表（仅当前用户参与的项目）")
+    public ApiResponse<PageResponse<ProjectResponse>> listProjects(ProjectFilter filter,
+                                                                    @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(projectService.listProjects(filter, principal));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取项目详情")
-    public ApiResponse<ProjectResponse> getProject(@PathVariable String id) {
-        return ApiResponse.success(projectService.getProject(id));
+    public ApiResponse<ProjectResponse> getProject(@PathVariable String id,
+                                                    @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(projectService.getProject(id, principal));
     }
 
     @PatchMapping("/{id}")
@@ -59,7 +61,8 @@ public class ProjectController {
 
     @GetMapping("/{id}/activities")
     @Operation(summary = "获取项目动态")
-    public ApiResponse<List<ProjectActivityResponse>> getActivities(@PathVariable String id) {
-        return ApiResponse.success(projectService.getActivities(id));
+    public ApiResponse<List<ProjectActivityResponse>> getActivities(@PathVariable String id,
+                                                                     @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(projectService.getActivities(id, principal));
     }
 }

@@ -34,15 +34,17 @@ public class RecordController {
     }
 
     @GetMapping
-    @Operation(summary = "分页查询实验记录列表")
-    public ApiResponse<PageResponse<RecordResponse>> listRecords(RecordFilter filter) {
-        return ApiResponse.success(recordService.listRecords(filter));
+    @Operation(summary = "分页查询实验记录列表（仅当前用户参与的项目）")
+    public ApiResponse<PageResponse<RecordResponse>> listRecords(RecordFilter filter,
+                                                                  @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(recordService.listRecords(filter, principal));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "获取实验记录详情")
-    public ApiResponse<RecordResponse> getRecord(@PathVariable String id) {
-        return ApiResponse.success(recordService.getRecord(id));
+    public ApiResponse<RecordResponse> getRecord(@PathVariable String id,
+                                                  @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(recordService.getRecord(id, principal));
     }
 
     @PutMapping("/{id}")
@@ -62,14 +64,16 @@ public class RecordController {
 
     @GetMapping("/{id}/versions")
     @Operation(summary = "获取实验记录版本列表")
-    public ApiResponse<List<RecordVersionResponse>> getVersions(@PathVariable String id) {
-        return ApiResponse.success(recordService.getVersions(id));
+    public ApiResponse<List<RecordVersionResponse>> getVersions(@PathVariable String id,
+                                                                 @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(recordService.getVersions(id, principal));
     }
 
     @GetMapping("/{id}/versions/{versionNo}")
     @Operation(summary = "获取实验记录特定版本详情")
     public ApiResponse<RecordVersionResponse> getVersion(@PathVariable String id,
-                                                         @PathVariable Long versionNo) {
-        return ApiResponse.success(recordService.getVersion(id, versionNo));
+                                                          @PathVariable Long versionNo,
+                                                          @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(recordService.getVersion(id, versionNo, principal));
     }
 }

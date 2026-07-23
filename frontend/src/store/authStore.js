@@ -1,17 +1,16 @@
-/**
- * 认证状态管理（Zustand）
- * 管理当前登录用户、token 和登录/登出操作。
- * 登录成功后持久化到 localStorage，刷新页面可恢复会话。
- */
 import { create } from 'zustand'
-import {
-  getCurrentUser,
-  login as loginApi,
-  logout as logoutApi,
-  register as registerApi,
-} from '@/api/auth'
+import * as authApi from '@/api/auth'
 
-export const useAuthStore = create((set, get) => ({
+function saveToken(token) {
+  localStorage.setItem('auth_token', token)
+}
+
+function clearSession() {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_user')
+}
+
+export const useAuthStore = create((set) => ({
   /** @type {{ id: string, name: string, email: string, avatarText: string } | null} */
   currentUser: null,
   /** @type {string | null} */
@@ -19,9 +18,6 @@ export const useAuthStore = create((set, get) => ({
   /** 是否正在加载会话恢复 */
   loading: true,
 
-  /**
-   * 尝试从 localStorage 恢复登录会话
-   */
   restoreSession: async () => {
     const token = localStorage.getItem('auth_token')
     if (!token) {
@@ -29,42 +25,40 @@ export const useAuthStore = create((set, get) => ({
       return
     }
     try {
-      const user = await getCurrentUser()
+      const user = await authApi.getCurrentUser()
       localStorage.setItem('auth_user', JSON.stringify(user))
       set({ currentUser: user, token, loading: false })
     } catch {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
+      clearSession()
       set({ currentUser: null, token: null, loading: false })
     }
   },
 
-  /**
-   * 登录
-   * @param {{ identifier: string, password: string }} credentials
-   */
   login: async (credentials) => {
-    const { user, token } = await loginApi(credentials)
-    localStorage.setItem('auth_token', token)
-    localStorage.setItem('auth_user', JSON.stringify(user))
-    set({ currentUser: user, token })
+    const response = await authApi.login(credentials)
+    saveToken(response.token)
+    localStorage.setItem('auth_user', JSON.stringify(response.user))
+    set({ currentUser: response.user, token: response.token })
   },
 
   register: async (account) => {
-    await registerApi(account)
-    await get().login({ identifier: account.username, password: account.password })
+    await authApi.register(account)
+    const response = await authApi.login({
+      identifier: account.username,
+      password: account.password,
+    })
+    saveToken(response.token)
+    localStorage.setItem('auth_user', JSON.stringify(response.user))
+    set({ currentUser: response.user, token: response.token })
   },
 
-  /**
-   * 登出
-   */
   logout: async () => {
     try {
-      await logoutApi()
-    } finally {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('auth_user')
-      set({ currentUser: null, token: null })
+      await authApi.logout()
+    } catch {
+      // ignore logout errors
     }
+    clearSession()
+    set({ currentUser: null, token: null })
   },
 }))

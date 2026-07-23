@@ -10,7 +10,7 @@ import {
   NotebookPen,
   LayoutTemplate,
   Search,
-  Users,
+  UserRound,
   Sparkles,
   FlaskConical,
   LogOut,
@@ -29,10 +29,10 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: '协作',
+    title: '发现与账户',
     items: [
       { to: '/search', label: '搜索中心', icon: Search },
-      { to: '/team', label: '团队管理', icon: Users },
+      { to: '/profile', label: '个人中心', icon: UserRound },
       { to: '/ai', label: 'AI 助手', icon: Sparkles },
     ],
   },
@@ -110,7 +110,14 @@ export default function Sidebar({ onNavigate }) {
       {/* 底部用户卡片 */}
       {currentUser && (
         <div className="border-t border-slate-100 p-3">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              navigate('/profile')
+              onNavigate?.()
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50"
+          >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-bold text-white">
               {currentUser.avatarText}
             </div>
@@ -122,15 +129,21 @@ export default function Sidebar({ onNavigate }) {
                 {currentUser.email}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="退出登录"
-              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+            <span
+              title="进入个人中心"
+              className="rounded-lg p-2 text-slate-400"
             >
-              <LogOut size={16} />
-            </button>
-          </div>
+              <UserRound size={16} />
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs font-medium text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut size={14} />
+            退出登录
+          </button>
         </div>
       )}
     </div>

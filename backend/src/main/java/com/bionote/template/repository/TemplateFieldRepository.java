@@ -8,4 +8,6 @@ import java.util.List;
 public interface TemplateFieldRepository extends JpaRepository<TemplateField, String> {
 
     List<TemplateField> findByTemplateIdOrderBySortOrder(String templateId);
+
+    long countByTemplateId(String templateId);
 }

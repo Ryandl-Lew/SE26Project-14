@@ -2,6 +2,8 @@
  * RecordTree 实验记录目录树（新设计）
  * 按分组（月份）展示当前项目的记录，点击切换预览。
  */
+import { useState } from 'react'
+import { ChevronDown, ChevronRight, FileText, Folder, FolderOpen } from 'lucide-react'
 import { RECORD_STATUS_LABELS } from '@/domain'
 
 /**
@@ -24,7 +26,7 @@ function groupByMonth(records) {
  * @param {string} [props.activeId] 当前选中记录
  * @param {(record: import('@/domain/models').ExperimentRecordSummary) => void} [props.onSelect]
  */
-export default function RecordTree({ records, activeId, onSelect }) {
+function LegacyRecordTree({ records, activeId, onSelect }) {
   const groups = groupByMonth(records)
 
   return (
@@ -66,6 +68,65 @@ export default function RecordTree({ records, activeId, onSelect }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+export default function RecordTree({ projects, records, activeId, onSelect }) {
+  const [expanded, setExpanded] = useState(() =>
+    Object.fromEntries(projects.map((project) => [project.id, true])),
+  )
+
+  return (
+    <div className="select-none text-[13px]" aria-label="项目与实验记录目录">
+      {projects.map((project) => {
+        const items = records
+          .filter((record) => record.projectId === project.id)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        const isExpanded = expanded[project.id] ?? true
+        const FolderIcon = isExpanded ? FolderOpen : Folder
+        return (
+          <div key={project.id} className="mb-1">
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => ({ ...value, [project.id]: !isExpanded }))}
+              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left font-medium text-slate-700 hover:bg-slate-100"
+            >
+              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <FolderIcon size={15} className="text-brand-500" />
+              <span className="min-w-0 flex-1 truncate">{project.name}</span>
+              <span className="text-[11px] font-normal text-slate-400">{items.length}</span>
+            </button>
+            {isExpanded && (
+              <div className="ml-4 border-l border-slate-200 pl-2">
+                {items.length > 0 ? items.map((record) => {
+                  const active = record.id === activeId
+                  return (
+                    <button
+                      key={record.id}
+                      type="button"
+                      onClick={() => onSelect?.(record)}
+                      className={`group flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition-colors ${
+                        active ? 'bg-brand-50 text-brand-800' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <FileText size={14} className={`mt-0.5 shrink-0 ${active ? 'text-brand-600' : 'text-slate-400'}`} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{record.title}</span>
+                        <span className="mt-0.5 block truncate text-[11px] text-slate-400">
+                          {RECORD_STATUS_LABELS[record.status]} · {record.createdAt.slice(0, 10)}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                }) : (
+                  <div className="px-3 py-2 text-xs text-slate-400">暂无实验记录</div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

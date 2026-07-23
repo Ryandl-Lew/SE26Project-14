@@ -7,6 +7,7 @@ import com.bionote.collaboration.repository.CommentRepository;
 import com.bionote.collaboration.repository.ReviewRepository;
 import com.bionote.common.error.BusinessException;
 import com.bionote.common.error.ErrorCode;
+import com.bionote.notification.service.NotificationService;
 import com.bionote.project.entity.Activity;
 import com.bionote.project.entity.ProjectMember;
 import com.bionote.project.entity.ProjectRole;
@@ -20,7 +21,6 @@ import com.bionote.record.repository.ExperimentRecordRepository;
 import com.bionote.record.repository.RecordVersionRepository;
 import com.bionote.user.entity.User;
 import com.bionote.security.UserPrincipal;
-import com.bionote.user.entity.User;
 import com.bionote.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +42,7 @@ public class CollaborationService {
     private final ActivityRepository activityRepository;
     private final ProjectRepository projectRepository;
     private final MemberRepository memberRepository;
+    private final NotificationService notificationService;
 
     public CollaborationService(ExperimentRecordRepository experimentRecordRepository,
                                 CommentRepository commentRepository,
@@ -50,7 +51,8 @@ public class CollaborationService {
                                 UserRepository userRepository,
                                 ActivityRepository activityRepository,
                                 ProjectRepository projectRepository,
-                                MemberRepository memberRepository) {
+                                MemberRepository memberRepository,
+                                NotificationService notificationService) {
         this.experimentRecordRepository = experimentRecordRepository;
         this.commentRepository = commentRepository;
         this.reviewRepository = reviewRepository;
@@ -59,6 +61,15 @@ public class CollaborationService {
         this.activityRepository = activityRepository;
         this.projectRepository = projectRepository;
         this.memberRepository = memberRepository;
+        this.notificationService = notificationService;
+    }
+
+    private long nextVersionNo(String recordId) {
+        return recordVersionRepository.findByRecordIdOrderByVersionNoDesc(recordId)
+                .stream()
+                .findFirst()
+                .map(v -> v.getVersionNo() + 1)
+                .orElse(1L);
     }
 
     @Transactional
@@ -101,16 +112,12 @@ public class CollaborationService {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "仅草稿状态的记录可以开始");
         }
 
-        if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
-        }
-
         verifyRecordOwner(record, principal);
 
         record.setStatus(RecordStatus.IN_PROGRESS);
         experimentRecordRepository.save(record);
 
-        recordVersionRepository.save(new RecordVersion(record.getId(), record.getVersion(),
+        recordVersionRepository.save(new RecordVersion(record.getId(), nextVersionNo(record.getId()),
                 record.getContentJson(), principal.id(), "开始记录"));
 
         Activity activity = new Activity(record.getProjectId(), principal.id(), "START",
@@ -127,25 +134,36 @@ public class CollaborationService {
 
         if (record.getStatus() != RecordStatus.DRAFT
                 && record.getStatus() != RecordStatus.IN_PROGRESS
-                && record.getStatus() != RecordStatus.SUPPLEMENT) {
+                && record.getStatus() != RecordStatus.SUPPLEMENT
+                && record.getStatus() != RecordStatus.REJECTED) {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "当前状态不允许提交审核");
-        }
-
-        if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
         }
 
         verifyRecordOwner(record, principal);
 
+        if (request.reviewerIds() != null && !request.reviewerIds().isEmpty()) {
+            record.setReviewerIds(String.join(",", request.reviewerIds()));
+        }
+
         record.setStatus(RecordStatus.PENDING_REVIEW);
         experimentRecordRepository.save(record);
 
-        recordVersionRepository.save(new RecordVersion(record.getId(), record.getVersion(),
+        recordVersionRepository.save(new RecordVersion(record.getId(), nextVersionNo(record.getId()),
                 record.getContentJson(), principal.id(), "提交审核"));
 
         Activity activity = new Activity(record.getProjectId(), principal.id(), "SUBMIT",
                 "RECORD", recordId, "提交了审核");
         activityRepository.save(activity);
+
+        if (request.reviewerIds() != null && !request.reviewerIds().isEmpty()) {
+            List<User> reviewers = userRepository.findAllById(request.reviewerIds());
+            for (User reviewer : reviewers) {
+                notificationService.createNotification(reviewer.getId(),
+                        "新的审核任务",
+                        "REVIEW",
+                        principal.name() + " 提交了「" + record.getTitle() + "」供你审核");
+            }
+        }
 
         log.info("Record submitted: id={}, by={}", recordId, principal.username());
     }
@@ -157,10 +175,6 @@ public class CollaborationService {
 
         if (record.getStatus() != RecordStatus.PENDING_REVIEW) {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "仅待审核状态的记录可以审核");
-        }
-
-        if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
         }
 
         checkReviewPermission(record, principal);
@@ -178,7 +192,7 @@ public class CollaborationService {
         reviewRepository.save(review);
 
         String reviewReason = "APPROVE".equals(request.decision()) ? "审核通过" : "驳回";
-        recordVersionRepository.save(new RecordVersion(record.getId(), record.getVersion(),
+        recordVersionRepository.save(new RecordVersion(record.getId(), nextVersionNo(record.getId()),
                 record.getContentJson(), principal.id(), reviewReason));
 
         String action = "APPROVE".equals(request.decision()) ? "APPROVE" : "REJECT";
@@ -199,16 +213,12 @@ public class CollaborationService {
             throw new BusinessException(ErrorCode.ILLEGAL_STATE_TRANSITION, "记录已归档");
         }
 
-        if (!record.getVersion().equals(request.version())) {
-            throw new BusinessException(ErrorCode.RECORD_VERSION_CONFLICT, "记录已被修改，请刷新后重试");
-        }
-
         verifyRecordOwner(record, principal);
 
         record.setStatus(RecordStatus.ARCHIVED);
         experimentRecordRepository.save(record);
 
-        recordVersionRepository.save(new RecordVersion(record.getId(), record.getVersion(),
+        recordVersionRepository.save(new RecordVersion(record.getId(), nextVersionNo(record.getId()),
                 record.getContentJson(), principal.id(), "归档记录"));
 
         Activity activity = new Activity(record.getProjectId(), principal.id(), "ARCHIVE",
@@ -223,11 +233,21 @@ public class CollaborationService {
             return;
         }
 
-        boolean isReviewer = memberRepository.findByProjectIdAndUserId(record.getProjectId(), principal.id())
+        String reviewerIds = record.getReviewerIds();
+        if (reviewerIds != null && !reviewerIds.isBlank()) {
+            boolean isAssignedReviewer = List.of(reviewerIds.split(","))
+                    .stream()
+                    .anyMatch(id -> id.trim().equals(principal.id()));
+            if (isAssignedReviewer) {
+                return;
+            }
+        }
+
+        boolean isProjectOwner = memberRepository.findByProjectIdAndUserId(record.getProjectId(), principal.id())
                 .filter(m -> m.getRole() == ProjectRole.OWNER || m.getRole() == ProjectRole.ADMIN)
                 .isPresent();
 
-        if (!isReviewer) {
+        if (!isProjectOwner) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED, "您没有审核该记录的权限");
         }
     }

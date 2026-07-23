@@ -11,21 +11,30 @@ import {
   PERMISSION_VALUE_LABELS,
   PERMISSION_VALUE_TONES,
 } from '@/domain'
-import { fetchPermissionMatrix, fetchTeamMembers } from '@/api'
-import { useAppStore } from '@/store/appStore'
+import { fetchPermissionMatrix, fetchTeamMembers, fetchProjects } from '@/api'
 
 /** 权限矩阵列顺序 */
 const ROLE_COLUMNS = ['owner', 'member', 'reviewer', 'observer']
 
 export default function TeamPage() {
-  const currentProjectId = useAppStore((s) => s.currentProjectId)
+  const [projects, setProjects] = useState([])
+  const [projectId, setProjectId] = useState('')
   const [members, setMembers] = useState([])
   const [matrix, setMatrix] = useState([])
 
   useEffect(() => {
-    fetchTeamMembers(currentProjectId).then(setMembers)
-    fetchPermissionMatrix(currentProjectId).then(setMatrix)
-  }, [currentProjectId])
+    fetchProjects().then(setProjects)
+  }, [])
+
+  useEffect(() => {
+    if (!projectId) {
+      setMembers([])
+      setMatrix([])
+      return
+    }
+    fetchTeamMembers(projectId).then(setMembers)
+    fetchPermissionMatrix(projectId).then(setMatrix)
+  }, [projectId])
 
   return (
     <section className="space-y-6">
@@ -36,6 +45,29 @@ export default function TeamPage() {
         actions={<Button icon={UserPlus}>邀请成员</Button>}
       />
 
+      <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-card">
+        <label className="text-sm font-medium text-slate-600">选择项目：</label>
+        <select
+          value={projectId}
+          onChange={(e) => setProjectId(e.target.value)}
+          className="input h-9 w-64 cursor-pointer"
+        >
+          <option value="">— 选择一个项目 —</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+        {projectId && (
+          <span className="ml-auto text-xs text-slate-400">{members.length} 名成员</span>
+        )}
+      </div>
+
+      {!projectId ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+          <p className="text-sm">请先选择一个项目查看成员与权限</p>
+        </div>
+      ) : (
+      <> 
       <Surface title={`项目成员列表 · ${members.length} 人`}>
         <div className="table-wrap">
           <table className="data-table">
@@ -124,6 +156,8 @@ export default function TeamPage() {
           </table>
         </div>
       </Surface>
+      </>
+      )}
     </section>
   )
 }

@@ -44,7 +44,10 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    // TODO: 将高级筛选条件一并传入 search()
+    if (!searchKeyword.trim()) {
+      setHits([])
+      return
+    }
     search({ keyword: searchKeyword }).then(setHits)
   }, [searchKeyword])
 
@@ -154,17 +157,26 @@ export default function SearchPage() {
                         {SEARCH_ENTITY_LABELS[hit.entityType]}
                       </Badge>
                     </div>
-                    <p className="mt-1 truncate text-xs text-slate-500">{hit.snippet}</p>
+                    <p
+                      className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500 [&_em]:not-italic [&_em]:bg-amber-100 [&_em]:text-amber-800 [&_em]:rounded [&_em]:px-0.5"
+                      dangerouslySetInnerHTML={{ __html: hit.snippet || hit.title }}
+                    />
                   </div>
                   <ChevronRight size={16} className="shrink-0 text-slate-300" />
                 </button>
               )
             })
-          ) : (
+          ) : hits.length > 0 ? (
             <EmptyState
               icon={Search}
               title="没有找到相关内容"
-              description={`没有匹配「${searchKeyword}」的结果，试试更换关键词或调整筛选条件。`}
+              description={`没有匹配「${searchKeyword}」的结果，试试更换关键词。`}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="输入关键词搜索"
+              description="搜索项目、实验记录、模板和附件中的内容。"
             />
           )}
         </div>

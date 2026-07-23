@@ -14,9 +14,11 @@ public record ProjectResponse(
         Long version,
         Instant createdAt,
         Instant updatedAt,
-        Instant archivedAt
+        Instant archivedAt,
+        long memberCount,
+        long recordCount
 ) {
-    public static ProjectResponse from(Project project, String ownerName) {
+    public static ProjectResponse from(Project project, String ownerName, long memberCount, long recordCount) {
         return new ProjectResponse(
                 project.getId(),
                 project.getCode(),
@@ -28,7 +30,9 @@ public record ProjectResponse(
                 project.getVersion(),
                 project.getCreatedAt(),
                 project.getUpdatedAt(),
-                project.getArchivedAt()
+                project.getArchivedAt(),
+                memberCount,
+                recordCount
         );
     }
 }

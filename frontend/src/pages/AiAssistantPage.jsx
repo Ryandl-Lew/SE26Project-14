@@ -37,7 +37,7 @@ const WELCOME = {
   text: '你好，我是 BioNote AI 助手。用自然语言描述你的实验过程，我会帮你生成结构化的实验记录、检查完整性并给出改进建议。',
 }
 
-export default function AiAssistantPage() {
+function LegacyAiAssistantPage() {
   const [feature, setFeature] = useState('generate')
   const [text, setText] = useState(SAMPLE_INPUT)
   const [messages, setMessages] = useState([WELCOME])
@@ -240,6 +240,30 @@ export default function AiAssistantPage() {
             />
           )}
         </Surface>
+      </div>
+    </section>
+  )
+}
+
+export default function AiAssistantPage() {
+  return (
+    <section>
+      <div className="mx-auto max-w-4xl py-8 sm:py-16">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+          <div className="border-b border-slate-100 bg-gradient-to-br from-brand-50 via-white to-indigo-50 px-6 py-12 text-center sm:px-12">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-pop"><Sparkles size={25} /></div>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-brand-600">AI 助手</p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">智能实验辅助功能正在规划中</h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">未来将提供实验记录结构化整理、完整性检查与摘要建议。当前版本优先完成项目、记录、审核、搜索和导出闭环。</p>
+          </div>
+          <div className="grid gap-px bg-slate-200 sm:grid-cols-3">
+            {[
+              ['记录整理', '将自然语言笔记整理为规范字段'],
+              ['完整性检查', '提示缺失的关键步骤、结果与附件'],
+              ['实验摘要', '为已完成记录生成简明内容摘要'],
+            ].map(([title, description]) => <div key={title} className="bg-white px-6 py-6 text-center"><h2 className="text-sm font-semibold text-slate-900">{title}</h2><p className="mt-1.5 text-xs leading-6 text-slate-500">{description}</p></div>)}
+          </div>
+        </div>
       </div>
     </section>
   )

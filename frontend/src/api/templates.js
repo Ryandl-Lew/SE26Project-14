@@ -1,34 +1,48 @@
-/**
- * 模板相关 API
- */
-import { mockTemplates } from '@/mocks/data'
-import { mockResponse } from './client'
+import { request } from './client'
 
-/**
- * 获取模板列表
- * @returns {Promise<import('@/domain/models').Template[]>}
- */
+function mapField(f) {
+  let unit = '-'
+  try {
+    if (f.configJson) {
+      const cfg = typeof f.configJson === 'string' ? JSON.parse(f.configJson) : f.configJson
+      if (cfg.unit) unit = cfg.unit
+    }
+  } catch { /* ignore */ }
+  return {
+    id: f.id,
+    name: f.label ?? f.fieldKey ?? f.name,
+    type: f.fieldType ?? f.type,
+    required: f.required,
+    unit,
+    searchable: f.searchable ?? false,
+  }
+}
+
+function mapTemplate(t) {
+  const fields = (t.fields ?? (t.fieldCount != null ? new Array(t.fieldCount).fill({}) : [])).map(mapField)
+  return {
+    id: t.id,
+    name: t.name,
+    description: t.description ?? '',
+    category: t.category ?? 'molecular',
+    experimentType: t.experimentType ?? t.category ?? t.name,
+    scope: t.builtIn ? 'system' : 'personal',
+    usageCount: 0,
+    tag: '',
+    fields,
+  }
+}
+
 export function fetchTemplates() {
-  // TODO: GET /api/templates
-  return mockResponse(mockTemplates)
+  return request('/templates').then((list) =>
+    (list ?? []).map(mapTemplate),
+  )
 }
 
-/**
- * 获取模板详情（含字段结构）
- * @param {string} id
- * @returns {Promise<import('@/domain/models').Template | undefined>}
- */
 export function fetchTemplate(id) {
-  // TODO: GET /api/templates/:id
-  return mockResponse(mockTemplates.find((t) => t.id === id))
+  return request(`/templates/${id}`).then((t) => (t ? mapTemplate(t) : undefined))
 }
 
-/**
- * 基于模板新建实验记录（返回预填的草稿标识）
- * @param {string} _templateId
- * @returns {Promise<{ recordId: string }>}
- */
-export function createRecordFromTemplate(_templateId) {
-  // TODO: POST /api/templates/:id/use
-  return mockResponse({ recordId: 'r-new' })
+export function createRecordFromTemplate(templateId) {
+  return { recordId: `r-new-${templateId}` }
 }
