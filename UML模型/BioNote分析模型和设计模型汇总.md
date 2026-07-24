@@ -25,20 +25,19 @@
 
 ### 1.1 分析概念类图
 
-![分析概念类图](E:\Lab26\SE26Project-14\TechPrototype\UML模型\分析概念类图.png)
+![分析概念类图](./分析概念类图.png)
 
 **图 1-1：分析概念类图**
 
-**图说明：**  
+
 本图展示 BioNote 系统的静态业务概念模型，涵盖 User、Project、ExperimentRecord、Template、Attachment 等核心实体及其关联关系。User 与 Project 之间为多对多参与关系（ProjectMember），Project 下可包含多条 ExperimentRecord，每条记录可关联多个 Attachment 和 Step。Template 为 Project 提供可复用的字段定义模板，指导实验记录的结构化填写。
 
 ### 1.2 分析时序图：记录实验数据
 
-![分析时序图](E:\Lab26\SE26Project-14\TechPrototype\UML模型\分析时序图.png)
+![分析时序图](./设计时序图.png)
 
 **图 1-2：分析时序图——记录实验数据**
 
-**图说明：**  
 本图围绕"记录实验数据"用例展开，展示实验记录者从新建实验记录到提交审核的完整业务交互流程。交互涉及 RecordPage、RecordEditor、DraftManager 和 RecordService 等分析层对象，体现用户在编辑器中填写数据、系统自动触发快照生成、保存草稿以及最终提交后状态变更为"待审核"的核心业务逻辑。
 
 ---
@@ -49,29 +48,26 @@
 
 ### 2.1 设计架构模型：系统逻辑视图
 
-![设计架构模型](E:\Lab26\SE26Project-14\TechPrototype\UML模型\设计架构模型.png)
+![设计架构模型](./设计架构模型.png)
 
 **图 2-1：设计架构模型——系统逻辑视图**
 
-**图说明：**  
 本图展示 BioNote 系统的前后端分层架构，前端采用 React 构建单页应用，后端基于 Spring Boot 提供 RESTful API。后端划分为 Controller 层（接收 HTTP 请求）、Service 层（业务逻辑编排）和 DAO 层（数据持久化），各层之间通过接口解耦。基础设施层包含 MySQL 数据库、文件存储服务和 IndexedDB 本地草稿存储，共同支撑系统的数据持久化与离线编辑能力。
 
 ### 2.2 设计类图：核心业务模块
 
-![设计类图](E:\Lab26\SE26Project-14\TechPrototype\UML模型\设计类图.png)
+![设计类图](./设计类图.png)
 
 **图 2-2：设计类图——核心业务模块**
 
-**图说明：**  
 本图聚焦核心业务模块的设计层面静态结构，详细展示 Controller、Service 及实体类的关键方法签名和依赖关系。ProjectController 和 RecordController 对外暴露 REST 接口，分别委托 ProjectService 和 RecordService 处理业务逻辑；实体类如 ExperimentRecord 和 Project 标注了 JPA 映射注解及关键字段，Service 层通过 Repository 接口访问数据库，体现分层解耦的设计原则。
 
 ### 2.3 设计时序图：提交实验记录审核
 
-![设计时序图](E:\Lab26\SE26Project-14\TechPrototype\UML模型\设计时序图.png)
+![设计时序图](./设计时序图.png)
 
 **图 2-3：设计时序图——提交实验记录审核**
 
-**图说明：**  
 本图展示"提交实验记录审核"的完整实现级调用流程。前端发起提交请求后，Controller 委托 Service 执行幂等性检查以防范重复提交，随后通过数据库行锁锁定目标记录以防并发冲突，Service 校验字段完整性后调用乐观锁机制更新记录状态，同时生成操作快照并写入事件日志，最终将审核任务推送至审核人队列，实现从提交到通知的端到端闭环。
 
 ---
