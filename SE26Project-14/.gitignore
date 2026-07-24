@@ -1,0 +1,23 @@
+# 依赖目录
+node_modules/
+frontend/node_modules/
+UIPrototype/frontend/node_modules/
+
+# 前端构建产物（Vite 默认输出）
+**/frontend/dist/
+**/frontend/dist-ssr/
+
+# Vite 缓存
+**/.vite/
+
+# 本地环境变量文件
+**/.env.local
+**/.env.*.local
+
+# 日志文件
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
