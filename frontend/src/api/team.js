@@ -22,6 +22,17 @@ function mapMember(m) {
   }
 }
 
+export function fetchUsers() {
+  return request('/users').then((list) =>
+    (list ?? []).map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      avatarText: u.avatarText ?? u.name?.slice(0, 1) ?? '?',
+    })),
+  )
+}
+
 export function fetchTeamMembers(projectId) {
   return request(`/projects/${projectId}/members`).then((list) =>
     (list ?? []).map(mapMember),
@@ -32,10 +43,10 @@ export function fetchPermissionMatrix(_projectId) {
   return request('/permissions').then((list) => list ?? [])
 }
 
-export function inviteMember(projectId, userId) {
+export function inviteMember(projectId, userId, role = 'MEMBER') {
   return request(`/projects/${projectId}/members`, {
     method: 'POST',
-    body: JSON.stringify({ userId, role: 'MEMBER' }),
+    body: JSON.stringify({ userId, role: role.toUpperCase() }),
   })
 }
 

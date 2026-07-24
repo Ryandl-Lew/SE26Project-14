@@ -16,9 +16,9 @@ public record TemplateListResponse(
         return new TemplateListResponse(
                 template.getId(),
                 template.getName(),
-                template.getCategory(),
+                template.getCategory().toLowerCase(),
                 template.getDescription(),
-                template.getCategory(),
+                template.getName(),
                 template.isBuiltIn(),
                 template.getVersion(),
                 fieldCount

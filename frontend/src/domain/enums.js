@@ -55,21 +55,25 @@ export const PROJECT_STATUS_TONES = {
 
 /* ------------------------------ 实验记录 ------------------------------ */
 
-/** @typedef {'draft'|'in_progress'|'pending_review'|'completed'|'rejected'} RecordStatus */
+/** @typedef {'draft'|'in_progress'|'pending_review'|'completed'|'rejected'|'supplement'|'archived'} RecordStatus */
 export const RECORD_STATUS_LABELS = {
-  draft: '草稿',
+  draft: '进行中',
   in_progress: '进行中',
-  pending_review: '待审核',
+  pending_review: '审核中',
   completed: '已完成',
   rejected: '需修改',
+  supplement: '审核中',
+  archived: '已完成',
 }
 
 export const RECORD_STATUS_TONES = {
-  draft: 'gray',
+  draft: 'blue',
   in_progress: 'blue',
   pending_review: 'amber',
   completed: 'green',
   rejected: 'red',
+  supplement: 'amber',
+  archived: 'gray',
 }
 
 /* ------------------------------- 模板 -------------------------------- */

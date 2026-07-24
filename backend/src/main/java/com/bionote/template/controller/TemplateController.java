@@ -73,4 +73,27 @@ public class TemplateController {
         templateService.deleteTemplate(id);
         return ApiResponse.success();
     }
+
+    @PostMapping("/{id}/favorite")
+    @Operation(summary = "收藏模板")
+    public ApiResponse<Void> favoriteTemplate(@PathVariable String id,
+                                              @AuthenticationPrincipal UserPrincipal principal) {
+        templateService.addFavorite(id, principal);
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/{id}/favorite")
+    @Operation(summary = "取消收藏模板")
+    public ApiResponse<Void> unfavoriteTemplate(@PathVariable String id,
+                                                @AuthenticationPrincipal UserPrincipal principal) {
+        templateService.removeFavorite(id, principal);
+        return ApiResponse.success();
+    }
+
+    @GetMapping("/favorites")
+    @Operation(summary = "获取已收藏的模板ID列表")
+    public ApiResponse<List<String>> getFavoriteTemplateIds(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ApiResponse.success(templateService.getFavoriteTemplateIds(principal));
+    }
 }

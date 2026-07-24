@@ -2,12 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, FilePlus2, FolderKanban, LayoutTemplate } from 'lucide-react'
 import { Badge, Button, PageHeader } from '@/components/ui'
-import { fetchProjects, fetchTemplates } from '@/api'
+import { fetchProjects, fetchTemplates, fetchFavoriteTemplateIds } from '@/api'
 
 export default function RecordCreatePage() {
   const navigate = useNavigate()
   const [projects, setProjects] = useState([])
   const [templates, setTemplates] = useState([])
+  const [favoriteIds, setFavoriteIds] = useState(new Set())
   const [projectId, setProjectId] = useState('')
   const [source, setSource] = useState('blank')
   const [templateId, setTemplateId] = useState('')
@@ -22,7 +23,12 @@ export default function RecordCreatePage() {
       setProjects(available)
       setProjectId(available[0]?.id ?? '')
     })
-    fetchTemplates().then(setTemplates)
+    fetchTemplates()
+      .then((tmpls) => setTemplates(tmpls ?? []))
+      .catch(() => setTemplates([]))
+    fetchFavoriteTemplateIds()
+      .then((favIds) => setFavoriteIds(new Set(favIds ?? [])))
+      .catch(() => setFavoriteIds(new Set()))
   }, [])
 
   const selectedProject = projects.find((project) => project.id === projectId)
@@ -37,11 +43,13 @@ export default function RecordCreatePage() {
   }
 
   const templateGroups = useMemo(
-    () => [
-      { label: '系统模板', items: templates.filter((template) => template.scope === 'system') },
-      { label: '我的模板', items: templates.filter((template) => template.scope === 'personal') },
-    ],
-    [templates],
+    () => {
+      const myTemplates = templates.filter(
+        (t) => t.scope === 'personal' || favoriteIds.has(t.id),
+      )
+      return [{ label: '我的模板', items: myTemplates }]
+    },
+    [templates, favoriteIds],
   )
 
   return (

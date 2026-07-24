@@ -21,7 +21,7 @@ public record TemplateResponse(
         return new TemplateResponse(
                 template.getId(),
                 template.getName(),
-                template.getCategory(),
+                template.getCategory().toLowerCase(),
                 template.getDescription(),
                 template.isBuiltIn(),
                 template.getVersion(),

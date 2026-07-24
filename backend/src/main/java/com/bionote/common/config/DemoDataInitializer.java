@@ -1,6 +1,7 @@
 package com.bionote.common.config;
 
 import com.bionote.template.entity.ExperimentTemplate;
+import com.bionote.template.entity.TemplateCategory;
 import com.bionote.template.entity.TemplateField;
 import com.bionote.template.repository.ExperimentTemplateRepository;
 import com.bionote.template.repository.TemplateFieldRepository;
@@ -72,7 +73,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         }
 
         ExperimentTemplate pcr = experimentTemplateRepository.save(new ExperimentTemplate(
-                "PCR 扩增", "PCR",
+                "PCR 扩增", TemplateCategory.MOLECULAR.name(),
                 "聚合酶链式反应（PCR）用于扩增特定 DNA 片段，是分子生物学中最基础的实验之一。",
                 true, null));
 
@@ -87,7 +88,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         ));
 
         ExperimentTemplate gelElectrophoresis = experimentTemplateRepository.save(new ExperimentTemplate(
-                "琼脂糖凝胶电泳", "电泳",
+                "琼脂糖凝胶电泳", TemplateCategory.MOLECULAR.name(),
                 "琼脂糖凝胶电泳用于分离和检测 DNA 片段，是分子生物学中最常用的实验技术之一。",
                 true, null));
 
@@ -101,7 +102,7 @@ public class DemoDataInitializer implements ApplicationRunner {
         ));
 
         ExperimentTemplate fermentation = experimentTemplateRepository.save(new ExperimentTemplate(
-                "发酵工程", "发酵工程",
+                "发酵工程", TemplateCategory.CELL.name(),
                 "发酵工程实验用于微生物培养、发酵条件优化及产物分析。",
                 true, null));
 

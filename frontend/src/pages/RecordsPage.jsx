@@ -8,6 +8,7 @@ import { Plus, Search, NotebookPen } from 'lucide-react'
 import { Button, PageHeader, StatusBadge, EmptyState } from '@/components/ui'
 import RecordTree from '@/components/record/RecordTree'
 import { fetchProjects, fetchRecord, fetchRecords } from '@/api'
+import { RECORD_STATUS_LABELS } from '@/domain'
 
 export default function RecordsPage() {
   const navigate = useNavigate()
@@ -38,7 +39,9 @@ export default function RecordsPage() {
     const normalized = keyword.trim().toLowerCase()
     return records.filter((record) => {
       const matchesKeyword = !normalized || record.title.toLowerCase().includes(normalized) || record.code.toLowerCase().includes(normalized)
-      return matchesKeyword && (status === 'all' || record.status === status)
+      if (status === 'all') return matchesKeyword
+      if (status === 'in_progress') return matchesKeyword && (record.status === 'draft' || record.status === 'in_progress')
+      return matchesKeyword && record.status === status
     })
   }, [keyword, records, status])
 
@@ -77,7 +80,11 @@ export default function RecordsPage() {
               <input type="search" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="按名称或编号搜索" className="input h-9 bg-white pl-9 text-[13px]" />
             </div>
             <select value={status} onChange={(event) => setStatus(event.target.value)} className="input mt-2 h-9 cursor-pointer bg-white text-[13px]">
-              <option value="all">全部状态</option><option value="draft">草稿</option><option value="in_progress">进行中</option><option value="pending_review">审核中</option><option value="rejected">需修改</option><option value="completed">已完成</option>
+              <option value="all">全部状态</option>
+              <option value="in_progress">{RECORD_STATUS_LABELS.in_progress}</option>
+              <option value="pending_review">{RECORD_STATUS_LABELS.pending_review}</option>
+              <option value="completed">{RECORD_STATUS_LABELS.completed}</option>
+              <option value="rejected">{RECORD_STATUS_LABELS.rejected}</option>
             </select>
           </div>
           <div className="max-h-[560px] overflow-y-auto p-2 xl:max-h-[650px]">

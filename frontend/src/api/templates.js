@@ -46,3 +46,36 @@ export function fetchTemplate(id) {
 export function createRecordFromTemplate(templateId) {
   return { recordId: `r-new-${templateId}` }
 }
+
+export function createTemplate({ name, category, description, fields }) {
+  const knownCategories = new Set(['molecular', 'cell', 'protein', 'immunology'])
+  return request('/templates', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      category: knownCategories.has(category.toLowerCase())
+        ? category.toUpperCase()
+        : category,
+      description,
+      fields: (fields ?? []).map((f, i) => ({
+        fieldKey: f.fieldKey,
+        label: f.label,
+        fieldType: f.fieldType,
+        required: f.required,
+        configJson: f.configJson ?? null,
+      })),
+    }),
+  }).then((t) => mapTemplate(t))
+}
+
+export function favoriteTemplate(templateId) {
+  return request(`/templates/${templateId}/favorite`, { method: 'POST' })
+}
+
+export function unfavoriteTemplate(templateId) {
+  return request(`/templates/${templateId}/favorite`, { method: 'DELETE' })
+}
+
+export function fetchFavoriteTemplateIds() {
+  return request('/templates/favorites').then((list) => list ?? [])
+}

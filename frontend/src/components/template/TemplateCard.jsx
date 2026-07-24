@@ -3,7 +3,7 @@
  * 模板中心的模板概要卡片，可「使用模板」跳转编辑器。
  */
 import { useNavigate } from 'react-router-dom'
-import { Dna, Microscope, Atom, ShieldCheck, LayoutTemplate, Eye, Copy, ArrowRight } from 'lucide-react'
+import { Dna, Microscope, Atom, ShieldCheck, LayoutTemplate, Eye, Copy, ArrowRight, Star } from 'lucide-react'
 import { Button, Badge } from '@/components/ui'
 
 /** 模板分类 → 图标与配色 */
@@ -18,8 +18,11 @@ const CATEGORY_CONFIG = {
 /**
  * @param {Object} props
  * @param {import('@/domain/models').Template} props.template
+ * @param {Function} [props.onView]
+ * @param {boolean} [props.isFavorited]
+ * @param {Function} [props.onToggleFavorite]
  */
-export default function TemplateCard({ template, onView }) {
+export default function TemplateCard({ template, onView, isFavorited, onToggleFavorite }) {
   const config = CATEGORY_CONFIG[template.category] ?? CATEGORY_CONFIG.mine
   const Icon = config.icon
 
@@ -29,7 +32,23 @@ export default function TemplateCard({ template, onView }) {
         <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${config.cls}`}>
           <Icon size={21} strokeWidth={1.8} />
         </div>
-        {template.tag && <Badge tone="blue">{template.tag}</Badge>}
+        <div className="flex items-center gap-1">
+          {template.tag && <Badge tone="blue">{template.tag}</Badge>}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(template.id) }}
+              className={`rounded-lg p-1.5 transition-colors ${
+                isFavorited
+                  ? 'text-amber-400 hover:text-amber-500'
+                  : 'text-slate-300 hover:text-amber-400'
+              }`}
+              title={isFavorited ? '取消收藏' : '收藏模板'}
+            >
+              <Star size={16} fill={isFavorited ? 'currentColor' : 'none'} />
+            </button>
+          )}
+        </div>
       </div>
 
       <h3 className="mt-3.5 text-[15px] font-semibold text-slate-900">{template.name}</h3>

@@ -20,6 +20,8 @@ import {
   Download,
   Eye,
   FileCheck2,
+  Search,
+  Check,
 } from 'lucide-react'
 import {
   Button,
@@ -38,6 +40,8 @@ import {
   fetchProjectMembers,
   fetchProjectTimeline,
   fetchRecords,
+  inviteMember,
+  fetchUsers,
 } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 
@@ -333,6 +337,12 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [previewFile, setPreviewFile] = useState(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [availableUsers, setAvailableUsers] = useState([])
+  const [userSearch, setUserSearch] = useState('')
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [inviteRole, setInviteRole] = useState('member')
+  const [inviting, setInviting] = useState(false)
+  const [inviteError, setInviteError] = useState('')
 
   useEffect(() => {
     if (!projectId) return
@@ -345,12 +355,26 @@ export default function ProjectDetailPage() {
     ])
   }, [projectId])
 
+  const handleOpenInvite = async () => {
+    setSelectedUserId('')
+    setInviteRole('member')
+    setUserSearch('')
+    setInviteError('')
+    setShowInvite(true)
+    try {
+      const users = await fetchUsers()
+      setAvailableUsers(users ?? [])
+    } catch {
+      setAvailableUsers([])
+    }
+  }
+
   if (!project) {
     return <div className="flex h-64 items-center justify-center text-sm text-slate-400">加载项目中…</div>
   }
 
-  const canReview = ['owner', 'reviewer'].includes(project.currentUserRole)
-  const isOwner = project.currentUserRole === 'owner'
+  const isOwner = project.ownerId === currentUser?.id
+  const canReview = isOwner || members.some(m => m.user.id === currentUser?.id && m.role === 'reviewer')
   const pendingRecords = records.filter((record) => record.status === 'pending_review')
   const sortedRecords = [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const tabs = [
@@ -358,7 +382,7 @@ export default function ProjectDetailPage() {
     { key: 'timeline', label: '时间线' },
     { key: 'records', label: `实验记录 ${records.length}` },
     { key: 'members', label: `成员 ${members.length}` },
-    ...(canReview ? [{ key: 'reviews', label: `待审核 ${pendingRecords.length}` }] : []),
+    ...(canReview ? [{ key: 'reviews', label: `审核中 ${pendingRecords.length}` }] : []),
   ]
 
   return (
@@ -379,7 +403,7 @@ export default function ProjectDetailPage() {
               <span className="inline-flex items-center gap-1.5"><Clock size={14} />创建于 {project.createdAt}</span>
             </div>
           </div>
-          {project.status === 'active' && project.currentUserRole !== 'reviewer' && (
+          {project.status === 'active' && (isOwner || members.some(m => m.user.id === currentUser?.id && m.role === 'member')) && (
             <Button icon={Plus} onClick={() => navigate(`/records/new?project=${project.id}`)}>新建实验</Button>
           )}
         </div>
@@ -451,7 +475,7 @@ export default function ProjectDetailPage() {
       )}
 
       {activeTab === 'members' && (
-        <Surface title="项目成员" className="animate-fade-in" extra={isOwner && <Button size="sm" icon={UserPlus} onClick={() => setShowInvite(true)}>邀请成员</Button>}>
+        <Surface title="项目成员" className="animate-fade-in" extra={isOwner && <Button size="sm" icon={UserPlus} onClick={handleOpenInvite}>邀请成员</Button>}>
           <div className="table-wrap">
             <table className="data-table"><thead><tr><th>成员</th><th>项目角色</th><th>权限</th><th>加入时间</th><th>最近活跃</th></tr></thead>
               <tbody>{members.map((member) => (
@@ -467,7 +491,7 @@ export default function ProjectDetailPage() {
       )}
 
       {activeTab === 'reviews' && canReview && (
-        <Surface title="待审核实验记录" className="animate-fade-in" extra={<Badge tone="amber">仅负责人和审核者可见</Badge>}>
+        <Surface title="审核中实验记录" className="animate-fade-in" extra={<Badge tone="amber">仅负责人和审核者可见</Badge>}>
           {pendingRecords.length > 0 ? (
             <div className="-mx-5 divide-y divide-slate-100">
               {pendingRecords.map((record) => (
@@ -478,7 +502,7 @@ export default function ProjectDetailPage() {
                 </button>
               ))}
             </div>
-          ) : <EmptyState icon={FileCheck2} title="暂无待审核记录" description="已处理的任务会自动从列表中移除。" />}
+          ) : <EmptyState icon={FileCheck2} title="暂无审核中记录" description="已处理的任务会自动从列表中移除。" />}
         </Surface>
       )}
 
@@ -491,11 +515,121 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      {showInvite && (
+      {showInvite && (() => {
+        const memberIds = new Set(members.map(m => m.user.id))
+        const filteredUsers = availableUsers
+          .filter(u => !memberIds.has(u.id))
+          .filter(u => {
+            if (!userSearch.trim()) return true
+            const q = userSearch.toLowerCase()
+            return u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q)
+          })
+        const selectedUser = availableUsers.find(u => u.id === selectedUserId)
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-pop"><h2 className="text-lg font-semibold text-slate-900">邀请项目成员</h2><p className="mt-1 text-sm text-slate-500">仅可邀请已注册用户，接受后默认成为编辑成员。</p><label className="field-label mt-5">注册邮箱</label><input className="input" placeholder="name@example.com" type="email" /><div className="mt-6 flex justify-end gap-2"><Button variant="secondary" onClick={() => setShowInvite(false)}>取消</Button><Button onClick={() => setShowInvite(false)}>发送邀请</Button></div></div>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-pop">
+            <h2 className="text-lg font-semibold text-slate-900">邀请项目成员</h2>
+            <p className="mt-1 text-sm text-slate-500">从用户列表中选择要邀请的成员，并指定角色身份。</p>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="field-label">搜索用户</label>
+                <div className="relative">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    className="input pl-9"
+                    placeholder="按姓名或邮箱搜索…"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="field-label mb-2 block">
+                  选择用户
+                  {selectedUser && (
+                    <span className="ml-2 text-xs font-normal text-brand-600">
+                      已选：{selectedUser.name} ({selectedUser.email})
+                    </span>
+                  )}
+                </label>
+                <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200">
+                  {filteredUsers.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-sm text-slate-400">
+                      {availableUsers.length === 0 ? '加载用户列表中…' : '没有匹配的用户'}
+                    </p>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => { setSelectedUserId(u.id); setInviteError('') }}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 ${
+                          selectedUserId === u.id ? 'bg-brand-50 ring-1 ring-inset ring-brand-200' : ''
+                        }`}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                          {u.avatarText}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium text-slate-900">{u.name}</span>
+                          <span className="block text-xs text-slate-400">{u.email}</span>
+                        </span>
+                        {selectedUserId === u.id && (
+                          <Check size={16} className="shrink-0 text-brand-600" />
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="field-label">角色身份</label>
+                <select
+                  className="input"
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                >
+                  <option value="owner">{PROJECT_ROLE_LABELS.owner}</option>
+                  <option value="reviewer">{PROJECT_ROLE_LABELS.reviewer}</option>
+                  <option value="member">{PROJECT_ROLE_LABELS.member}</option>
+                </select>
+              </div>
+
+              {inviteError && <p className="text-sm text-red-500">{inviteError}</p>}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowInvite(false)}>取消</Button>
+              <Button
+                loading={inviting}
+                disabled={!selectedUserId || inviting}
+                onClick={async () => {
+                  setInviting(true)
+                  setInviteError('')
+                  try {
+                    await inviteMember(projectId, selectedUserId, inviteRole)
+                    setShowInvite(false)
+                    setSelectedUserId('')
+                    setInviteRole('member')
+                    fetchProjectMembers(projectId).then(setMembers)
+                  } catch (err) {
+                    setInviteError(err?.message ?? '邀请失败，请检查用户ID是否正确')
+                  } finally {
+                    setInviting(false)
+                  }
+                }}
+              >
+                发送邀请
+              </Button>
+            </div>
+          </div>
         </div>
-      )}
+        )
+      })()}
     </section>
   )
 }
