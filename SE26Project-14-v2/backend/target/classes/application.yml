@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: bionote
+  profiles:
+    default: local
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 22MB
+  jackson:
+    time-zone: UTC
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+bionote:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-change-this-secret-before-production-123456}
+    ttl-minutes: ${JWT_TTL_MINUTES:120}
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  upload-root: ${UPLOAD_ROOT:./uploads}
+  upload-max-bytes: ${UPLOAD_MAX_BYTES:20971520}

@@ -1,0 +1,15 @@
+/**
+ * API 统一出口
+ * 使用：import { fetchProjects, fetchRecords, login } from '@/api'
+ */
+export * from './client'
+export * from './projects'
+export * from './records'
+export * from './templates'
+export { search, fetchDashboardTasks, fetchDashboardSummary } from './assist'
+export * from './auth'
+export * from './users'
+export * from './notifications'
+export * from './attachments'
+export * from './reviews'
+export * from './exports'
