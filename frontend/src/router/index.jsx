@@ -16,7 +16,6 @@
  *   /templates             模板中心
  *   /search                搜索中心
  *   /profile               个人中心
- *   /ai                    AI 助手
  *   *                      404
  */
 import { createBrowserRouter } from 'react-router-dom'
@@ -33,7 +32,6 @@ import {
   TemplatesPage,
   SearchPage,
   ProfilePage,
-  AiAssistantPage,
   NotFoundPage,
   LoginPage,
   RegisterPage,
@@ -67,7 +65,6 @@ export const router = createBrowserRouter([
       { path: 'templates', element: <TemplatesPage /> },
       { path: 'search', element: <SearchPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'ai', element: <AiAssistantPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

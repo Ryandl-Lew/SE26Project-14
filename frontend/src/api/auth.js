@@ -2,7 +2,7 @@ import { request } from './client'
 
 /**
  * 登录
- * @param {{ identifier: string, password: string }} credentials
+ * @param {{ email: string, password: string }} credentials
  */
 export function login(credentials) {
   return request('/auth/login', {

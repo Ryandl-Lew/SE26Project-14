@@ -1,21 +1,6 @@
 /** 后端基础地址，可通过 VITE_API_BASE_URL 覆盖。 */
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
 
-/** 模拟网络延迟（毫秒） */
-const MOCK_DELAY = 200
-
-/**
- * 将 mock 数据包装为 Promise，模拟异步请求。
- * @template T
- * @param {T} data 要返回的数据
- * @returns {Promise<T>}
- */
-export function mockResponse(data) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), MOCK_DELAY)
-  })
-}
-
 export class ApiError extends Error {
   constructor(message, code, fieldErrors, status) {
     super(message)
@@ -32,10 +17,11 @@ export class ApiError extends Error {
  * @param {RequestInit} [options]
  */
 export async function request(path, options = {}) {
+  const { responseType = 'json', ...fetchOptions } = options
   const token = localStorage.getItem('auth_token')
-  const headers = new Headers(options.headers)
-  headers.set('Accept', 'application/json')
-  if (options.body && !headers.has('Content-Type')) {
+  const headers = new Headers(fetchOptions.headers)
+  headers.set('Accept', responseType === 'blob' ? '*/*' : 'application/json')
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
   if (token) {
@@ -44,15 +30,19 @@ export async function request(path, options = {}) {
 
   let response
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+    response = await fetch(`${API_BASE_URL}${path}`, { ...fetchOptions, headers })
   } catch {
     throw new ApiError('无法连接服务器，请稍后重试', 'NETWORK_ERROR', null, 0)
   }
 
-  const payload = response.status === 204
-    ? null
+  const payload = response.status === 204 ? null : responseType === 'blob'
+    ? await response.blob()
     : await response.json().catch(() => null)
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token')
+      window.dispatchEvent(new Event('bionote:unauthorized'))
+    }
     throw new ApiError(
       payload?.message || '请求失败，请稍后重试',
       payload?.code || 'REQUEST_FAILED',
@@ -60,5 +50,7 @@ export async function request(path, options = {}) {
       response.status,
     )
   }
+  if (responseType === 'blob') return { blob: payload, headers: response.headers }
+  if (payload?.meta) return { items: payload.data, meta: payload.meta }
   return payload?.data ?? null
 }

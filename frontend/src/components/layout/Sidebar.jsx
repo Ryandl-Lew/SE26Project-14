@@ -11,7 +11,6 @@ import {
   LayoutTemplate,
   Search,
   UserRound,
-  Sparkles,
   FlaskConical,
   LogOut,
 } from 'lucide-react'
@@ -33,7 +32,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/search', label: '搜索中心', icon: Search },
       { to: '/profile', label: '个人中心', icon: UserRound },
-      { to: '/ai', label: 'AI 助手', icon: Sparkles },
     ],
   },
 ]
@@ -119,11 +117,11 @@ export default function Sidebar({ onNavigate }) {
             className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-indigo-500 text-sm font-bold text-white">
-              {currentUser.avatarText}
+              {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" /> : currentUser.displayName?.slice(0, 1)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold text-slate-900">
-                {currentUser.name}
+                {currentUser.displayName}
               </div>
               <div className="truncate text-xs text-slate-400">
                 {currentUser.email}

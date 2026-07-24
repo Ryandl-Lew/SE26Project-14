@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
-import Topbar from './Topbar'
+import Topbar from './TopbarMvp'
 
 export default function AppLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
